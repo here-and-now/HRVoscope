@@ -1,4 +1,5 @@
 # sensitive data
+polarh10_mac.py
 *.csv
 #PDF
 *.pdf
