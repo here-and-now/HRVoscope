@@ -1,12 +1,15 @@
-from PySide6.QtCore import QObject, Signal, QByteArray, Qt
 from PySide6.QtBluetooth import (
     QBluetoothDeviceDiscoveryAgent,
     QLowEnergyController,
     QLowEnergyService,
     QBluetoothUuid,
+    QBluetoothDeviceInfo,
+    QBluetoothAddress
 )
+from PySide6.QtCore import QObject, Signal, QByteArray, Qt, QCoreApplication
+
 from math import ceil
-from utils import get_sensor_address, get_sensor_remote_address
+
 class SensorClient(QObject):
     """
     Connect to a Polar sensor that acts as a Bluetooth server / peripheral.
@@ -21,29 +24,37 @@ class SensorClient(QObject):
 
     def __init__(self):
         super().__init__()
+
+        self.mac_address = 'D1:EC:51:A8:A2:6A'
+
         self.client = None
+        self.sensor = None
+
         self.hr_service = None
         self.hr_notification = None
+
+
         self.ENABLE_NOTIFICATION = QByteArray.fromHex(b"0100")
         self.DISABLE_NOTIFICATION = QByteArray.fromHex(b"0000")
         self.HR_SERVICE = QBluetoothUuid.ServiceClassUuid.HeartRate
         self.HR_CHARACTERISTIC = QBluetoothUuid.CharacteristicType.HeartRateMeasurement
 
-    def _sensor_address(self):
-        return get_sensor_remote_address(self.client)
-
     def connect_client(self, sensor):
         if self.client:
             msg = (
-                f"Currently connected to sensor at {self._sensor_address()}."
+                f"Currently connected to sensor at {self.mac_address}."
                 " Please disconnect before (re-)connecting to (another) sensor."
             )
             self.status_update.emit(msg)
+            print(msg)  # Print the status update message to the console
             return
         self.status_update.emit(
-            f"Connecting to sensor at {get_sensor_address(sensor)}."
+            f"Connecting to sensor at {self.mac_address}."
         )
-        self.client = QLowEnergyController.createCentral(sensor)
+        print(f"Connecting to sensor at {self.mac_address}.")  # Print the status update message to the console
+
+        self.sensor = QBluetoothDeviceInfo(QBluetoothAddress(self.mac_address), 'Polar H10', 0)
+        self.client = QLowEnergyController.createCentral(self.sensor)
         self.client.errorOccurred.connect(self._catch_error)
         self.client.connected.connect(self._discover_services)
         self.client.discoveryFinished.connect(self._connect_hr_service)
@@ -60,8 +71,9 @@ class SensorClient(QObject):
             )
         if self.client:
             self.status_update.emit(
-                f"Disconnecting from sensor at {self._sensor_address()}."
+                f"Disconnecting from sensor at {self.mac_address}."
             )
+            print(f"Disconnecting from sensor at {self.mac_address}.")  # Print the status update message to the console
             self.client.disconnectFromDevice()
 
     def _discover_services(self):
@@ -70,12 +82,12 @@ class SensorClient(QObject):
     def _connect_hr_service(self):
         hr_service = [s for s in self.client.services() if s == self.HR_SERVICE]
         if not hr_service:
-            print(f"Couldn't find HR service on {self._sensor_address()}.")
+            print(f"Couldn't find HR service on {self.mac_address}.")
             return
         self.hr_service = self.client.createServiceObject(*hr_service)
         if not self.hr_service:
             print(
-                f"Couldn't establish connection to HR service on {self._sensor_address()}."
+                f"Couldn't establish connection to HR service on {self.mac_address}."
             )
             return
         self.hr_service.stateChanged.connect(self._start_hr_notification)
@@ -87,7 +99,7 @@ class SensorClient(QObject):
             return
         hr_char = self.hr_service.characteristic(self.HR_CHARACTERISTIC)
         if not hr_char.isValid():
-            print(f"Couldn't find HR characterictic on {self._sensor_address()}.")
+            print(f"Couldn't find HR characterictic on {self.mac_address}.")
         self.hr_notification = hr_char.descriptor(
             QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
         )
@@ -96,7 +108,7 @@ class SensorClient(QObject):
         self.hr_service.writeDescriptor(self.hr_notification, self.ENABLE_NOTIFICATION)
 
     def _reset_connection(self):
-        print(f"Discarding sensor at {self._sensor_address()}.")
+        print(f"Discarding sensor at {self.mac_address}")
         self._remove_service()
         self._remove_client()
 
@@ -120,7 +132,9 @@ class SensorClient(QObject):
 
     def _catch_error(self, error):
         self.status_update.emit(f"An error occurred: {error}. Disconnecting sensor.")
+        print(f"An error occurred: {error}. Disconnecting sensor.")  # Print the status update message to the console
         self._reset_connection()
+
 
     def _data_handler(self, _, data):  # _ is unused but mandatory argument
         """
@@ -174,4 +188,12 @@ class SensorClient(QObject):
             # TODO: move conversion to model and only convert if sensor doesn't
             # transmit data in milliseconds.
             ibi = ceil(ibi / 1024 * 1000)
+            print(ibi)
             self.ibi_update.emit(ibi)
+
+
+if __name__ == '__main__':
+    app = QCoreApplication([])
+    sensor_client = SensorClient()
+    sensor_client.connect_client(sensor_client.sensor)
+    app.exec()
