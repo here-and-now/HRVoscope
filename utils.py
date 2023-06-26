@@ -79,3 +79,16 @@ def find_indices_to_average(seconds, mean_window):
         # make sure that at least one element gets selected
         mean_indices[-1] = True
     return mean_indices
+
+@staticmethod
+def convert_array_to_signed_int(data, offset, length):
+    return int.from_bytes(
+        bytearray(data[offset: offset + length]), byteorder="little", signed=True,
+    )
+
+@staticmethod
+def convert_to_unsigned_long(data, offset, length):
+    return int.from_bytes(
+        bytearray(data[offset: offset + length]), byteorder="little", signed=False,
+    )
+
