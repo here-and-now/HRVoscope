@@ -240,3 +240,7 @@ class PolarH10:
         self.ibi_data = {'times': ibi_times, 'values': np.array(self.ibi_stream_values)}
 
         return self.ibi_data
+
+
+pol = PolarH10()
+pol.

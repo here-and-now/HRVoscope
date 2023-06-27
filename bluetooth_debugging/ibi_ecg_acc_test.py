@@ -41,68 +41,80 @@ class SensorClient(QObject):
         self.acc_service = None
         self.acc_notification = None
 
+
         self.ENABLE_NOTIFICATION = QByteArray.fromHex(b"0100")
         self.DISABLE_NOTIFICATION = QByteArray.fromHex(b"0000")
-        self.HR_SERVICE = QBluetoothUuid.ServiceClassUuid.HeartRate
+
+        # # ECG and ACC Notify Requests
+        # self.ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
+        # self.ACC_WRITE = bytearray([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])
+
+        self.ECG_WRITE = QByteArray(bytes(bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])))
+        self.ACC_WRITE = QByteArray(
+            bytes(bytearray([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])))
+
         self.HR_CHARACTERISTIC = QBluetoothUuid.CharacteristicType.HeartRateMeasurement
-        self.ECG_SERVICE = QBluetoothUuid('FB005C23-02E7-F387-1CAD-8ACD2D8DF0C8')
-        self.ACC_SERVICE = QBluetoothUuid('FB005C25-02E7-F387-1CAD-8ACD2D8DF0C8')
+
+
+        self.HR_SERVICE = QBluetoothUuid.ServiceClassUuid.HeartRate
+
+        self.ECG_SERVICE = QBluetoothUuid('fb005c80-02e7-f387-1cad-8acd2d8df0c8')
+        self.ECG_CHARACTERISTIC = QBluetoothUuid('fb005c81-02e7-f387-1cad-8acd2d8df0c8')
+
+        self.PMD_CHAR1_UUID = "fb005c81-02e7-f387-1cad-8acd2d8df0c8"  # read, write, indicate – Request stream settings?
+        self.PMD_CHAR2_UUID = "fb005c82-02e7-f387-1cad-8acd2d8df0c8"  # notify – Start the notify stream?
+
+        self.PMD_SERVICE = QBluetoothUuid(
+            "fb005c80-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for connection establishment with device ##
+        self.PMD_CONTROL = QBluetoothUuid("fb005c81-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for Request of stream settings ##
+        self.PMD_DATA = QBluetoothUuid("fb005c82-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for Request of start stream ##
+
+
         self.ACC_SAMPLING_FREQ = 200
         self.ECG_SAMPLING_FREQ = 130
 
-    def connect_client(self, sensor):
-        if self.client:
-            msg = (
-                f"Currently connected to sensor at {self.mac_address}."
-                " Please disconnect before (re-)connecting to (another) sensor."
-            )
-            self.status_update.emit(msg)
-            print(msg)  # Print the status update message to the console
+
+    def _connect_ecg_service(self):
+        ecg_service = [s for s in self.client.services() if s == self.ECG_SERVICE]
+
+        if not ecg_service:
+            print(f"Couldn't find ECG service on {self.mac_address}.")
             return
-        self.status_update.emit(
-            f"Connecting to sensor at {self.mac_address}."
+
+        self.ecg_service = self.client.createServiceObject(*ecg_service)
+
+        if not self.ecg_service:
+            print(f"Couldn't establish connection to ECG service on {self.mac_address}.")
+            return
+
+        self.ecg_service.stateChanged.connect(self._start_ecg_notification)
+        self.ecg_service.characteristicChanged.connect(self._ecg_data_handler)
+        self.ecg_service.discoverDetails()
+
+    def _start_ecg_notification(self, state):
+        if state != QLowEnergyService.ServiceDiscovered:
+            return
+        ecg_char = self.ecg_service.characteristic(self.PMD_CONTROL)
+        if not ecg_char.isValid():
+            print(f"Couldn't find ECG characteristic on {self.mac_address}.")
+            return
+        self.ecg_notification = ecg_char.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
         )
-        print(f"Connecting to sensor at {self.mac_address}.")  # Print the status update message to the console
+        print(self.ecg_notification)
+        if not self.ecg_notification.isValid():
+            print("ECG characteristic is invalid.")
+            return
 
-        self.sensor = QBluetoothDeviceInfo(QBluetoothAddress(self.mac_address), 'Polar H10', 0)
-        self.client = QLowEnergyController.createCentral(self.sensor)
-        self.client.errorOccurred.connect(self._catch_error)
-        self.client.connected.connect(self._discover_services)
-        self.client.discoveryFinished.connect(self._connect_hr_service)
-        self.client.disconnected.connect(self._reset_connection)
-        self.client.connectToDevice()
+        data = QByteArray()
+        data.append(0x02)
+        data.append(0x09)
+        self.ecg_service.writeCharacteristic(ecg_char, data, QLowEnergyService.WriteWithResponse)
 
-    def disconnect_client(self):
-        if self.hr_notification and self.hr_service:
-            if not self.hr_notification.isValid():
-                return
-            print("Unsubscribing from HR service.")
-            self.hr_service.writeDescriptor(
-                self.hr_notification, self.DISABLE_NOTIFICATION
-            )
-        if self.ecg_notification and self.ecg_service:
-            if not self.ecg_notification.isValid():
-                return
-            print("Unsubscribing from ECG service.")
-            self.ecg_service.writeDescriptor(
-                self.ecg_notification, self.DISABLE_NOTIFICATION
-            )
-        if self.acc_notification and self.acc_service:
-            if not self.acc_notification.isValid():
-                return
-            print("Unsubscribing from ACC service.")
-            self.acc_service.writeDescriptor(
-                self.acc_notification, self.DISABLE_NOTIFICATION
-            )
-        if self.client:
-            self.status_update.emit(
-                f"Disconnecting from sensor at {self.mac_address}."
-            )
-            print(f"Disconnecting from sensor at {self.mac_address}.")  # Print the status update message to the console
-            self.client.disconnectFromDevice()
-
-    def _discover_services(self):
-        self.client.discoverServices()
+        # self.ecg_service.writeDescriptor(self.ecg_notification, self.ENABLE_NOTIFICATION)
+        self.ecg_service.writeDescriptor(self.ecg_notification, self.ECG_WRITE)
+        # self.ecg_service.writeDescriptor(self.ecg_notification, QByteArray.fromHex("0100"))
+        # self.ecg_service.writeDescriptor(self.PMD_CHAR2_UUID, )
 
     def _connect_hr_service(self):
         hr_service = [s for s in self.client.services() if s == self.HR_SERVICE]
@@ -119,36 +131,6 @@ class SensorClient(QObject):
         self.hr_service.characteristicChanged.connect(self._hr_data_handler)
         self.hr_service.discoverDetails()
 
-    def _connect_ecg_service(self):
-        ecg_service = [s for s in self.client.services() if s == self.ECG_SERVICE]
-        if not ecg_service:
-            print(f"Couldn't find ECG service on {self.mac_address}.")
-            return
-        self.ecg_service = self.client.createServiceObject(*ecg_service)
-        if not self.ecg_service:
-            print(
-                f"Couldn't establish connection to ECG service on {self.mac_address}."
-            )
-            return
-        self.ecg_service.stateChanged.connect(self._start_ecg_notification)
-        self.ecg_service.characteristicChanged.connect(self._ecg_data_handler)
-        self.ecg_service.discoverDetails()
-
-    def _connect_acc_service(self):
-        acc_service = [s for s in self.client.services() if s == self.ACC_SERVICE]
-        if not acc_service:
-            print(f"Couldn't find ACC service on {self.mac_address}.")
-            return
-        self.acc_service = self.client.createServiceObject(*acc_service)
-        if not self.acc_service:
-            print(
-                f"Couldn't establish connection to ACC service on {self.mac_address}."
-            )
-            return
-        self.acc_service.stateChanged.connect(self._start_acc_notification)
-        self.acc_service.characteristicChanged.connect(self._acc_data_handler)
-        self.acc_service.discoverDetails()
-
     def _start_hr_notification(self, state):
         if state != QLowEnergyService.ServiceDiscovered:
             return
@@ -163,36 +145,6 @@ class SensorClient(QObject):
             print("HR characteristic is invalid.")
             return
         self.hr_service.writeDescriptor(self.hr_notification, self.ENABLE_NOTIFICATION)
-
-    def _start_ecg_notification(self, state):
-        if state != QLowEnergyService.ServiceDiscovered:
-            return
-        ecg_char = self.ecg_service.characteristic(self.ECG_CHARACTERISTIC)
-        if not ecg_char.isValid():
-            print(f"Couldn't find ECG characteristic on {self.mac_address}.")
-            return
-        self.ecg_notification = ecg_char.descriptor(
-            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
-        )
-        if not self.ecg_notification.isValid():
-            print("ECG characteristic is invalid.")
-            return
-        self.ecg_service.writeDescriptor(self.ecg_notification, self.ENABLE_NOTIFICATION)
-
-    def _start_acc_notification(self, state):
-        if state != QLowEnergyService.ServiceDiscovered:
-            return
-        acc_char = self.acc_service.characteristic(self.ACC_CHARACTERISTIC)
-        if not acc_char.isValid():
-            print(f"Couldn't find ACC characteristic on {self.mac_address}.")
-            return
-        self.acc_notification = acc_char.descriptor(
-            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
-        )
-        if not self.acc_notification.isValid():
-            print("ACC characteristic is invalid.")
-            return
-        self.acc_service.writeDescriptor(self.acc_notification, self.ENABLE_NOTIFICATION)
 
     def _reset_connection(self):
         print(f"Discarding sensor at {self.mac_address}")
@@ -306,36 +258,73 @@ class SensorClient(QObject):
         """
         sequence_number = int.from_bytes(data[:4], byteorder='little')
         raw_ecg_data = data[4:]
+        print('ECG hooking in')
         ecg_values = []
 
         for i in range(0, len(raw_ecg_data), 2):
-            ecg_value = convert_array_to_signed_int(raw_ecg_data[i:i+2])
+            ecg_value = convert_array_to_signed_int(raw_ecg_data, i, 2)
             ecg_values.append(ecg_value)
 
         self.ecg_update.emit(ecg_values)
-        print('ECG: ', ecg_values)
+        print('ECG:', ecg_values)
+    def connect_client(self, sensor):
+        if self.client:
+            msg = (
+                f"Currently connected to sensor at {self.mac_address}."
+                " Please disconnect before (re-)connecting to (another) sensor."
+            )
+            self.status_update.emit(msg)
+            print(msg)  # Print the status update message to the console
+            return
+        self.status_update.emit(
+            f"Connecting to sensor at {self.mac_address}."
+        )
+        print(f"Connecting to sensor at {self.mac_address}.")  # Print the status update message to the console
 
-    def _acc_data_handler(self, _, data):
-        """
-        The ACC data handler receives ACC data from the sensor. Each data packet contains
-        a sequence number and a raw ACC data frame. The frame is a 9-byte array that
-        represents the ACC data of 3 ACC channels (x, y, and z) at a specific timestamp.
+        self.sensor = QBluetoothDeviceInfo(QBluetoothAddress(self.mac_address), 'Polar H10', 0)
+        self.client = QLowEnergyController.createCentral(self.sensor)
+        self.client.errorOccurred.connect(self._catch_error)
+        self.client.connected.connect(self._discover_services)
 
-        The ACC data handler extracts the raw ACC data and emits it as a signal.
+        self.client.discoveryFinished.connect(self._connect_hr_service)
+        self.client.discoveryFinished.connect(self._connect_ecg_service)
 
-        Args:
-            data (QByteArray): The raw ACC data packet.
-        """
-        sequence_number = int.from_bytes(data[:4], byteorder='little')
-        raw_acc_data = data[4:]
-        acc_values = []
+        self.client.disconnected.connect(self._reset_connection)
+        self.client.connectToDevice()
 
-        for i in range(0, len(raw_acc_data), 2):
-            acc_value = convert_array_to_signed_int(raw_acc_data[i:i+2])
-            acc_values.append(acc_value)
+    def disconnect_client(self):
+        if self.hr_notification and self.hr_service:
+            if not self.hr_notification.isValid():
+                return
+            print("Unsubscribing from HR service.")
+            self.hr_service.writeDescriptor(
+                self.hr_notification, self.DISABLE_NOTIFICATION
+            )
+        if self.ecg_notification and self.ecg_service:
+            if not self.ecg_notification.isValid():
+                return
+            print("Unsubscribing from ECG service.")
+            self.ecg_service.writeDescriptor(
+                self.ecg_notification, self.DISABLE_NOTIFICATION
+            )
+        if self.acc_notification and self.acc_service:
+            if not self.acc_notification.isValid():
+                return
+            print("Unsubscribing from ACC service.")
+            self.acc_service.writeDescriptor(
+                self.acc_notification, self.DISABLE_NOTIFICATION
+            )
+        if self.client:
+            self.status_update.emit(
+                f"Disconnecting from sensor at {self.mac_address}."
+            )
+            print(f"Disconnecting from sensor at {self.mac_address}.")  # Print the status update message to the console
+            self.client.disconnectFromDevice()
 
-        self.acc_update.emit(acc_values)
-        print('ACC: ', acc_values)
+    def _discover_services(self):
+        self.client.discoverServices()
+
+
 
 
 if __name__ == '__main__':
