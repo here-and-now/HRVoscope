@@ -37,7 +37,7 @@ class SensorClient(QObject):
         self.hr_service = None
         self.hr_notification = None
         self.ecg_service = None
-        self.ecg_notification = None
+        self.ecg_control_notification = None
         self.acc_service = None
         self.acc_notification = None
 
@@ -94,27 +94,32 @@ class SensorClient(QObject):
     def _start_ecg_notification(self, state):
         if state != QLowEnergyService.ServiceDiscovered:
             return
-        ecg_char = self.ecg_service.characteristic(self.PMD_CONTROL)
-        if not ecg_char.isValid():
-            print(f"Couldn't find ECG characteristic on {self.mac_address}.")
+        ecg_char_control = self.ecg_service.characteristic(self.PMD_CONTROL)
+        ecg_char_data = self.ecg_service.characteristic(self.PMD_DATA)
+
+        if not ecg_char_control.isValid():
+            print(f"Couldn't find ECG control characteristic on {self.mac_address}.")
             return
-        self.ecg_notification = ecg_char.descriptor(
+
+        if not ecg_char_data.isValid():
+            print(f"Couldn't find ECG data characteristic on {self.mac_address}.")
+            return
+
+        self.ecg_control_notification = ecg_char_control.descriptor(
             QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
         )
-        print(self.ecg_notification)
-        if not self.ecg_notification.isValid():
+
+        self.ecg_data_notification = ecg_char_data.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
+        )
+
+        if not self.ecg_control_notification.isValid():
             print("ECG characteristic is invalid.")
             return
 
-        data = QByteArray()
-        data.append(0x02)
-        data.append(0x09)
-        self.ecg_service.writeCharacteristic(ecg_char, data, QLowEnergyService.WriteWithResponse)
+        self.ecg_service.writeCharacteristic(ecg_char_control, self.ECG_WRITE, QLowEnergyService.WriteWithResponse)
+        self.ecg_service.writeDescriptor(self.ecg_data_notification, self.ENABLE_NOTIFICATION)
 
-        # self.ecg_service.writeDescriptor(self.ecg_notification, self.ENABLE_NOTIFICATION)
-        self.ecg_service.writeDescriptor(self.ecg_notification, self.ECG_WRITE)
-        # self.ecg_service.writeDescriptor(self.ecg_notification, QByteArray.fromHex("0100"))
-        # self.ecg_service.writeDescriptor(self.PMD_CHAR2_UUID, )
 
     def _connect_hr_service(self):
         hr_service = [s for s in self.client.services() if s == self.HR_SERVICE]
@@ -168,7 +173,7 @@ class SensorClient(QObject):
             self.hr_service = None
             self.hr_notification = None
             self.ecg_service = None
-            self.ecg_notification = None
+            self.ecg_control_notification = None
             self.acc_service = None
             self.acc_notification = None
 
@@ -300,12 +305,12 @@ class SensorClient(QObject):
             self.hr_service.writeDescriptor(
                 self.hr_notification, self.DISABLE_NOTIFICATION
             )
-        if self.ecg_notification and self.ecg_service:
-            if not self.ecg_notification.isValid():
+        if self.ecg_control_notification and self.ecg_service:
+            if not self.ecg_control_notification.isValid():
                 return
             print("Unsubscribing from ECG service.")
             self.ecg_service.writeDescriptor(
-                self.ecg_notification, self.DISABLE_NOTIFICATION
+                self.ecg_control_notification, self.DISABLE_NOTIFICATION
             )
         if self.acc_notification and self.acc_service:
             if not self.acc_notification.isValid():
