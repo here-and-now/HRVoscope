@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QGridLayout,
     QSizePolicy,
+    QStylePainter
 )
 from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer, QMargins, QSize
 from PySide6.QtGui import QIcon, QLinearGradient, QBrush, QGradient, QColor
@@ -23,7 +24,10 @@ from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAre
 from pacer import Pacer
 
 # from sensor import SensorClient
-from bluetooth_debugging.ibi_ecg_acc_test import SensorClient
+# from bluetooth_debugging.ibi_ecg_acc_test import SensorClient
+from bluetooth_debugging.sensors_pandas_emit_test import SensorClient
+
+import numpy as np
 
 
 BLUE = QColor(135, 206, 250)
@@ -36,24 +40,19 @@ RED = QColor(255, 0, 0)
 class View(QMainWindow):
     def __init__(self, model):
         super().__init__()
-        self.setWindowTitle("test")
-        # self.setWindowIcon(QIcon("icon.png"))
+        self.setWindowTitle("HRVoscope")
 
         self.model = model
 
-        import numpy as np
-
-        array = np.linspace(0, len(self.model.ibi_buffer) - 1, len(self.model.ibi_buffer))
-
-        self.ibi_widget = XYSeriesWidget(array, self.model.ibi_buffer)
-        # self.ibi_widget = XYSeriesWidget([0,1,3], [0,1,3])
         self.sensor = SensorClient()
         self.sensor.connect_client(self.sensor)
 
-        self.model.ibi_buffer_update.connect(self.plot_ibi)
-
-        self.sensor.ibi_update.connect(self.model.update_ibi_buffer)
-
+        # IBI
+        # array = np.linspace(0, len(self.model.ibi_buffer) - 1, len(self.model.ibi_buffer))
+        # self.ibi_widget = XYSeriesWidget(array, self.model.ibi_buffer)
+        self.ibi_widget = XYSeriesWidget()
+        self.model.ibi_dataframe_update.connect(self.plot_ibi_from_df)
+        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
 
         # Layout stuff
         self.layout = QHBoxLayout()
@@ -65,12 +64,19 @@ class View(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def plot_ibi(self, ibi):
-        self.ibi_widget.update_series(*ibi.value)
+        self.ibi_widget.update_series(ibi)
+
+    def plot_ibi_from_df(self, df):
+        self.ibi_widget.update_series_from_df(df)
+
     def plot_ecg_buffer(self, ecg):
         self.xy.update_series(ecg)
     def plot_pacer_disk(self):
         coordinates = self.pacer.update(self.model.breathing_rate)
         self.pacer_widget.update_series(*coordinates)
+
+    def on_ibi_slider_changed(self, value):
+        self.ibi_widget.x_slider.setValue(value)  # Update the x_slider value
 
 class PacerWidget(QChartView):
     def __init__(self, x_values=None, y_values=None, color=BLUE):
@@ -153,19 +159,32 @@ class XYSeriesWidget(QChartView):
 
         self.y_axis = QValueAxis()
         self.y_axis.setLabelFormat("%i")
-        self.y_axis.setRange(0, 1000)
+        # self.y_axis.setRange(0, 1000)
         self.plot.addAxis(self.y_axis, Qt.AlignLeft)
         self.time_series.attachAxis(self.y_axis)
 
         self.setChart(self.plot)
+
 
     def _instantiate_series(self, x_values, y_values):
         for x, y in zip(x_values, y_values):
             self.time_series.append(x, y)
 
     def update_series(self, x_values, y_values):
-        print('update series')
-        print(len(x_values))
-        print(len(y_values))
-        for i, (x, y) in enumerate(zip(x_values, y_values)):
-            self.time_series.replace(i, x, y)
+        self.time_series.append(x_values, y_values)
+
+
+    def update_series_from_df(self, df):
+
+        x_values = df.index.values
+        y_values = df.values
+        self.time_series.append(df[])
+
+
+
+
+    def set_dynamic_range(self, y_values):
+        self.y_axis.setRange(np.min(y_values), np.max(y_values))
+
+
+

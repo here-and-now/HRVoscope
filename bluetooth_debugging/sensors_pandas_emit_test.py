@@ -13,7 +13,7 @@ import sys
 
 from utils import convert_array_to_signed_int, convert_to_unsigned_long
 import numpy as np
-
+import pandas as pd
 class SensorClient(QObject):
     """
     Connect to a Polar sensor that acts as a Bluetooth server / peripheral.
@@ -28,7 +28,12 @@ class SensorClient(QObject):
     acc_update = Signal(object)
     status_update = Signal(str)
 
-    ibi_values_update = Signal(object)
+    ibi_update = Signal(object)
+    hr_update = Signal(object)
+    ecg_update = Signal(object)
+    acc_update = Signal(object)
+    # status_update = Signal(pd.DataFrame)
+
 
     def __init__(self):
         super().__init__()
@@ -232,13 +237,10 @@ class SensorClient(QObject):
             # TODO: move conversion to model and only convert if sensor doesn't
             # transmit data in milliseconds.
             ibi = math.ceil(ibi / 1024 * 1000)
+
             self.ibi_update.emit(ibi)
-            self.ibi_values_update.emit(ibi)
+            self.hr_update.emit(hr)
 
-        # self.hr_update.emit(hr)
-
-        print('HR: ', hr)
-        print('IBI: ', ibi)
     def __ecg_data_handler(self, _, data):
         # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]
         # 00 = ECG; EA 1C AC CC 99 43 52 08 = last sample timestamp in nanoseconds; 00 = ECG frameType, sample0 = [68 00 00] microVolts(104) , sample1, sample2, ....
