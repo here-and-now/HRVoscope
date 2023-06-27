@@ -9,8 +9,10 @@ from PySide6.QtBluetooth import (
 from PySide6.QtCore import QObject, Signal, QByteArray, Qt, QCoreApplication
 
 import math
-import struct
+import sys
+
 from utils import convert_array_to_signed_int, convert_to_unsigned_long
+import numpy as np
 
 class SensorClient(QObject):
     """
@@ -41,28 +43,19 @@ class SensorClient(QObject):
         self.acc_service = None
         self.acc_notification = None
 
+        self.ecg_stream_values = []
+        self.ecg_stream_times = []
+
 
         self.ENABLE_NOTIFICATION = QByteArray.fromHex(b"0100")
         self.DISABLE_NOTIFICATION = QByteArray.fromHex(b"0000")
-
-        # # ECG and ACC Notify Requests
-        # self.ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
-        # self.ACC_WRITE = bytearray([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])
 
         self.ECG_WRITE = QByteArray(bytes(bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])))
         self.ACC_WRITE = QByteArray(
             bytes(bytearray([0x02, 0x02, 0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])))
 
         self.HR_CHARACTERISTIC = QBluetoothUuid.CharacteristicType.HeartRateMeasurement
-
-
         self.HR_SERVICE = QBluetoothUuid.ServiceClassUuid.HeartRate
-
-        self.ECG_SERVICE = QBluetoothUuid('fb005c80-02e7-f387-1cad-8acd2d8df0c8')
-        self.ECG_CHARACTERISTIC = QBluetoothUuid('fb005c81-02e7-f387-1cad-8acd2d8df0c8')
-
-        self.PMD_CHAR1_UUID = "fb005c81-02e7-f387-1cad-8acd2d8df0c8"  # read, write, indicate – Request stream settings?
-        self.PMD_CHAR2_UUID = "fb005c82-02e7-f387-1cad-8acd2d8df0c8"  # notify – Start the notify stream?
 
         self.PMD_SERVICE = QBluetoothUuid(
             "fb005c80-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for connection establishment with device ##
@@ -73,9 +66,8 @@ class SensorClient(QObject):
         self.ACC_SAMPLING_FREQ = 200
         self.ECG_SAMPLING_FREQ = 130
 
-
     def _connect_ecg_service(self):
-        ecg_service = [s for s in self.client.services() if s == self.ECG_SERVICE]
+        ecg_service = [s for s in self.client.services() if s == self.PMD_SERVICE]
 
         if not ecg_service:
             print(f"Couldn't find ECG service on {self.mac_address}.")
@@ -135,7 +127,6 @@ class SensorClient(QObject):
         self.hr_service.stateChanged.connect(self._start_hr_notification)
         self.hr_service.characteristicChanged.connect(self._hr_data_handler)
         self.hr_service.discoverDetails()
-
     def _start_hr_notification(self, state):
         if state != QLowEnergyService.ServiceDiscovered:
             return
@@ -150,12 +141,10 @@ class SensorClient(QObject):
             print("HR characteristic is invalid.")
             return
         self.hr_service.writeDescriptor(self.hr_notification, self.ENABLE_NOTIFICATION)
-
     def _reset_connection(self):
         print(f"Discarding sensor at {self.mac_address}")
         self._remove_service()
         self._remove_client()
-
     def _remove_service(self):
         try:
             self.hr_service.deleteLater()
@@ -176,7 +165,6 @@ class SensorClient(QObject):
             self.ecg_control_notification = None
             self.acc_service = None
             self.acc_notification = None
-
     def _remove_client(self):
         try:
             self.client.disconnected.disconnect()
@@ -185,12 +173,10 @@ class SensorClient(QObject):
             print(f"Couldn't remove client: {e}")
         finally:
             self.client = None
-
     def _catch_error(self, error):
         self.status_update.emit(f"An error occurred: {error}. Disconnecting sensor.")
         print(f"An error occurred: {error}. Disconnecting sensor.")  # Print the status update message to the console
         self._reset_connection()
-
     def _hr_data_handler(self, _, data):  # _ is an unused but mandatory argument
         """
         `data` is formatted according to the
@@ -249,7 +235,28 @@ class SensorClient(QObject):
 
         print('HR: ', hr)
         print('IBI: ', ibi)
+    def __ecg_data_handler(self, _, data):
+        # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]
+        # 00 = ECG; EA 1C AC CC 99 43 52 08 = last sample timestamp in nanoseconds; 00 = ECG frameType, sample0 = [68 00 00] microVolts(104) , sample1, sample2, ....
+        print('ECG start')
+        print(data)
+        if data[0] == 0x00:
+            print('Its 0x00')
+            timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9
+            step = 3
+            time_step = 1.0 / self.ECG_SAMPLING_FREQ
+            samples = data[10:]
+            n_samples = math.floor(len(samples) / step)
+            offset = 0
+            sample_timestamp = timestamp - (n_samples - 1) * time_step
+            while offset < len(samples):
+                ecg = convert_array_to_signed_int(samples, offset, step)
+                offset += step
+                self.ecg_stream_values.extend([ecg])
+                self.ecg_stream_times.extend([sample_timestamp])
+                sample_timestamp += time_step
 
+            print(self.ecg_stream_values)
     def _ecg_data_handler(self, _, data):
         """
         The ECG data handler receives ECG data from the sensor. Each data packet contains
@@ -263,7 +270,6 @@ class SensorClient(QObject):
         """
         sequence_number = int.from_bytes(data[:4], byteorder='little')
         raw_ecg_data = data[4:]
-        print('ECG hooking in')
         ecg_values = []
 
         for i in range(0, len(raw_ecg_data), 2):
@@ -271,7 +277,15 @@ class SensorClient(QObject):
             ecg_values.append(ecg_value)
 
         self.ecg_update.emit(ecg_values)
-        print('ECG:', ecg_values)
+        # print('ECG:', ecg_values)
+
+        # # Append the new ECG values to the data arrays
+        # self.ecg_stream_values.extend(ecg_values)
+        # self.ecg_stream_times.extend(np.arange(
+        #     len(self.ecg_stream_values) - len(ecg_values),
+        #     len(self.ecg_stream_values)
+        # ) / self.ECG_SAMPLING_FREQ)
+
     def connect_client(self, sensor):
         if self.client:
             msg = (
@@ -329,11 +343,11 @@ class SensorClient(QObject):
     def _discover_services(self):
         self.client.discoverServices()
 
-
-
-
-if __name__ == '__main__':
-    app = QCoreApplication([])
-    sensor_client = SensorClient()
-    sensor_client.connect_client(sensor_client.sensor)
-    app.exec()
+# def main():
+#     app = QCoreApplication(sys.argv)
+#     sensor_client = SensorClient()
+#     sensor_client.connect_client(sensor_client.sensor)
+#     sys.exit(app.exec_())
+#
+# if __name__ == '__main__':
+#     main()

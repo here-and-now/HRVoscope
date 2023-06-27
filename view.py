@@ -22,6 +22,10 @@ from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAre
 
 from pacer import Pacer
 
+# from sensor import SensorClient
+from bluetooth_debugging.ibi_ecg_acc_test import SensorClient
+
+
 BLUE = QColor(135, 206, 250)
 WHITE = QColor(255, 255, 255)
 GREEN = QColor(0, 255, 0)
@@ -35,24 +39,35 @@ class View(QMainWindow):
         self.setWindowTitle("test")
         # self.setWindowIcon(QIcon("icon.png"))
 
-        self.pacer = Pacer()
-        self.pacer_widget = PacerWidget(*self.pacer.update(0))
+        self.model = model
 
-        self.pacer_timer = QTimer()
-        self.pacer_timer.setInterval(1 / 8 * 1000)  # redraw pacer at 8Hz
-        # self.pacer_timer.timeout.connect(self.plot_pacer_disk)
+        import numpy as np
 
-        self.xy = XYSeriesWidget()
+        array = np.linspace(0, len(self.model.ibi_buffer) - 1, len(self.model.ibi_buffer))
 
+        self.ibi_widget = XYSeriesWidget(array, self.model.ibi_buffer)
+        # self.ibi_widget = XYSeriesWidget([0,1,3], [0,1,3])
+        self.sensor = SensorClient()
+        self.sensor.connect_client(self.sensor)
+
+        self.model.ibi_buffer_update.connect(self.plot_ibi)
+
+        self.sensor.ibi_update.connect(self.model.update_ibi_buffer)
+
+
+        # Layout stuff
         self.layout = QHBoxLayout()
-        self.layout.addWidget(self.pacer_widget)
-        self.layout.addWidget(self.xy)
-
+        self.layout.addWidget(self.ibi_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(self.layout)
+
         self.setCentralWidget(central_widget)
 
+    def plot_ibi(self, ibi):
+        self.ibi_widget.update_series(*ibi.value)
+    def plot_ecg_buffer(self, ecg):
+        self.xy.update_series(ecg)
     def plot_pacer_disk(self):
         coordinates = self.pacer.update(self.model.breathing_rate)
         self.pacer_widget.update_series(*coordinates)
@@ -127,15 +142,18 @@ class XYSeriesWidget(QChartView):
         pen.setColor(line_color)
         self.time_series.setPen(pen)
         if x_values is not None and y_values is not None:
+            print('not empty')
             self._instantiate_series(x_values, y_values)
 
         self.x_axis = QValueAxis()
         self.x_axis.setLabelFormat("%i")
+        self.x_axis.setRange(0, 1000)
         self.plot.addAxis(self.x_axis, Qt.AlignBottom)
         self.time_series.attachAxis(self.x_axis)
 
         self.y_axis = QValueAxis()
         self.y_axis.setLabelFormat("%i")
+        self.y_axis.setRange(0, 1000)
         self.plot.addAxis(self.y_axis, Qt.AlignLeft)
         self.time_series.attachAxis(self.y_axis)
 
@@ -146,5 +164,8 @@ class XYSeriesWidget(QChartView):
             self.time_series.append(x, y)
 
     def update_series(self, x_values, y_values):
+        print('update series')
+        print(len(x_values))
+        print(len(y_values))
         for i, (x, y) in enumerate(zip(x_values, y_values)):
             self.time_series.replace(i, x, y)
