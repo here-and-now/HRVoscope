@@ -22,9 +22,7 @@ from PySide6.QtGui import QIcon, QLinearGradient, QBrush, QGradient, QColor
 from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAreaSeries
 
 from pacer import Pacer
-
 # from sensor import SensorClient
-# from bluetooth_debugging.ibi_ecg_acc_test import SensorClient
 from bluetooth_debugging.sensors_pandas_emit_test import SensorClient
 
 import numpy as np

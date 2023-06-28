@@ -24,15 +24,10 @@ class SensorClient(QObject):
     """
 
     ibi_update = Signal(object)
-    ecg_update = Signal(object)
-    acc_update = Signal(object)
-    status_update = Signal(str)
-
-    ibi_update = Signal(object)
     hr_update = Signal(object)
     ecg_update = Signal(object)
     acc_update = Signal(object)
-    # status_update = Signal(pd.DataFrame)
+    status_update = Signal(str)
 
 
     def __init__(self):
@@ -284,7 +279,6 @@ class SensorClient(QObject):
 
         self.ecg_update.emit(ecg_values)
 
-
     def connect_client(self, sensor):
         if self.client:
             msg = (
@@ -342,11 +336,3 @@ class SensorClient(QObject):
     def _discover_services(self):
         self.client.discoverServices()
 
-# def main():
-#     app = QCoreApplication(sys.argv)
-#     sensor_client = SensorClient()
-#     sensor_client.connect_client(sensor_client.sensor)
-#     sys.exit(app.exec_())
-#
-# if __name__ == '__main__':
-#     main()
