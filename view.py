@@ -40,6 +40,7 @@ RED = QColor(255, 0, 0)
 class View(QMainWindow):
     def __init__(self, model):
         super().__init__()
+
         self.setWindowTitle("HRVoscope")
 
         self.model = model
@@ -48,11 +49,10 @@ class View(QMainWindow):
         self.sensor.connect_client(self.sensor)
 
         # IBI
-        # array = np.linspace(0, len(self.model.ibi_buffer) - 1, len(self.model.ibi_buffer))
-        # self.ibi_widget = XYSeriesWidget(array, self.model.ibi_buffer)
         self.ibi_widget = XYSeriesWidget()
-        self.model.ibi_dataframe_update.connect(self.plot_ibi_from_df)
+        self.model.ibi_dataframe_update.connect(self.plot_ibi)
         self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+
 
         # Layout stuff
         self.layout = QHBoxLayout()
@@ -63,14 +63,10 @@ class View(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
-    def plot_ibi(self, ibi):
-        self.ibi_widget.update_series(ibi)
 
-    def plot_ibi_from_df(self, df):
-        self.ibi_widget.update_series_from_df(df)
+    def plot_ibi(self, df):
+        self.ibi_widget.update_series(df)
 
-    def plot_ecg_buffer(self, ecg):
-        self.xy.update_series(ecg)
     def plot_pacer_disk(self):
         coordinates = self.pacer.update(self.model.breathing_rate)
         self.pacer_widget.update_series(*coordinates)
@@ -147,9 +143,6 @@ class XYSeriesWidget(QChartView):
         pen.setWidth(4)
         pen.setColor(line_color)
         self.time_series.setPen(pen)
-        if x_values is not None and y_values is not None:
-            print('not empty')
-            self._instantiate_series(x_values, y_values)
 
         self.x_axis = QValueAxis()
         self.x_axis.setLabelFormat("%i")
@@ -166,24 +159,16 @@ class XYSeriesWidget(QChartView):
         self.setChart(self.plot)
 
 
-    def _instantiate_series(self, x_values, y_values):
-        for x, y in zip(x_values, y_values):
-            self.time_series.append(x, y)
-
-    def update_series(self, x_values, y_values):
-        self.time_series.append(x_values, y_values)
-
-
-    def update_series_from_df(self, df):
-
+    def update_series(self, df):
         x_values = df.index.values
         y_values = df.values
-        self.time_series.append(df[])
+        self.time_series.clear()
+        for x, y in zip(x_values, y_values):
+            self.time_series.append(x, y)
+        self.set_dynamic_range(x_values,y_values)
 
-
-
-
-    def set_dynamic_range(self, y_values):
+    def set_dynamic_range(self, x_values, y_values):
+        self.x_axis.setRange(np.min(x_values), np.max(x_values))
         self.y_axis.setRange(np.min(y_values), np.max(y_values))
 
 
