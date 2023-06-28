@@ -44,10 +44,16 @@ class View(QMainWindow):
         self.model.ibi_dataframe_update.connect(self.plot_ibi)
         self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
 
+        # HR
+        self.hr_widget = XYSeriesWidget()
+        self.model.hr_dataframe_update.connect(self.plot_hr)
+        self.sensor.hr_update.connect(self.model.update_hr_dataframe)
+
 
         # Layout stuff
         self.layout = QHBoxLayout()
         self.layout.addWidget(self.ibi_widget)
+        self.layout.addWidget(self.hr_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(self.layout)
@@ -58,12 +64,12 @@ class View(QMainWindow):
     def plot_ibi(self, df):
         self.ibi_widget.update_series(df)
 
+    def plot_hr(self, df):
+        self.hr_widget.update_series(df)
+
     def plot_pacer_disk(self):
         coordinates = self.pacer.update(self.model.breathing_rate)
         self.pacer_widget.update_series(*coordinates)
-
-    def on_ibi_slider_changed(self, value):
-        self.ibi_widget.x_slider.setValue(value)  # Update the x_slider value
 
 class PacerWidget(QChartView):
     def __init__(self, x_values=None, y_values=None, color=BLUE):
