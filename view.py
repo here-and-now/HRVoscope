@@ -1,4 +1,7 @@
 from datetime import datetime
+import numpy as np
+import pandas as pd
+
 from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
@@ -21,19 +24,9 @@ from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer, QMargins, QSize
 from PySide6.QtGui import QIcon, QLinearGradient, QBrush, QGradient, QColor
 from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAreaSeries
 
+from utils import BLUE, WHITE, GREEN, YELLOW, RED
 from pacer import Pacer
-# from sensor import SensorClient
-from bluetooth_debugging.sensors_pandas_emit_test import SensorClient
-
-import numpy as np
-
-
-BLUE = QColor(135, 206, 250)
-WHITE = QColor(255, 255, 255)
-GREEN = QColor(0, 255, 0)
-YELLOW = QColor(255, 255, 0)
-RED = QColor(255, 0, 0)
-
+from sensor import SensorClient
 
 class View(QMainWindow):
     def __init__(self, model):

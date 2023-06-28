@@ -2,6 +2,14 @@ import re
 from pathlib import Path
 import platform
 
+from PySide6.QtGui import QColor
+
+BLUE = QColor(135, 206, 250)
+WHITE = QColor(255, 255, 255)
+GREEN = QColor(0, 255, 0)
+YELLOW = QColor(255, 255, 0)
+RED = QColor(255, 0, 0)
+
 
 def get_sensor_address(sensor):
     """Return MAC (Windows, Linux) or UUID (macOS)."""
