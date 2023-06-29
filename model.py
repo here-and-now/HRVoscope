@@ -7,12 +7,13 @@ class Model(QObject):
 
     ibi_dataframe_update = Signal(object)
     hr_dataframe_update = Signal(object)
+    hrv_metrics_update = Signal(object)
 
     def __init__(self):
         super().__init__()
         self.ibi_dataframe = pd.DataFrame()
         self.hr_dataframe = pd.DataFrame()
-
+        self.hrv_dataframe = pd.DataFrame()
 
 
     @Slot(dict)
@@ -33,23 +34,22 @@ class Model(QObject):
         self.hr_dataframe.index = pd.DatetimeIndex(self.hr_dataframe.index)
         self.hr_dataframe_update.emit(self.hr_dataframe)
 
-
     def calculate_hrv_metrics(self):
-        # Perform HRV calculations on the IBI DataFrame
-        # Calculate metrics such as SDNN, RMSSD, etc.
-        # Example code:
-        hrv_metrics = {}
         ibi_values = self.ibi_dataframe['ibi'].values
-        # Perform your HRV calculations here using ibi_values
+        ibi_timestamps = self.ibi_dataframe.index
+
         sdnn = np.std(ibi_values)
         rmssd = np.sqrt(np.mean(np.square(np.diff(ibi_values))))
-        # Add more HRV metrics calculations as needed
+        pnn50 = float(np.sum(np.abs(np.diff(ibi_values)) > 50) / len(ibi_values) * 100)
+        pnn20 = float(np.sum(np.abs(np.diff(ibi_values)) > 20) / len(ibi_values) * 100)
 
-        # Update the hrv_metrics dictionary
-        hrv_metrics['SDNN'] = sdnn
-        hrv_metrics['RMSSD'] = rmssd
-        # Add more HRV metrics to the hrv_metrics dictionary
+        hrv_metrics = pd.DataFrame(
+            {'SDNN': [sdnn], 'RMSSD': [rmssd], 'pNN50': [pnn50], 'pNN20': [pnn20], 'IBI': [ibi_values[-1]]},
+            index=[ibi_timestamps[-1]]  # Set the index as the timestamp from the latest IBI value
+        )
 
+        self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
 
+        print(hrv_metrics)
 
         self.hrv_metrics_update.emit(hrv_metrics)

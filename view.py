@@ -69,17 +69,13 @@ class View(QMainWindow):
         print(df.index[-1])
 
     def plot_ibi(self, df):
-        #print(df)
         # self.ibi_widget.update_series(df['timestamp'], df['ibi'])
         df = self.downsample_dataframe(df, 100)
-
         index = [i for i in range(df.index.shape[0])]
         self.ibi_widget.update_series(index, df['ibi'])
     def plot_hr(self, df):
         # self.hr_widget.update_series(df['timestamp'], df['hr'])
         df = self.downsample_dataframe(df, 100)
-        print(df)
-
         index = [i for i in range(df.index.shape[0])]
         self.hr_widget.update_series(index, df['hr'])
 
