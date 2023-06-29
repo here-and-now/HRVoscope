@@ -236,10 +236,12 @@ class SensorClient(QObject):
             # transmit data in milliseconds.
             ibi = math.ceil(ibi / 1024 * 1000)
 
-            timestamp = time.time_ns()/1.0e9
+            timestamp = time.time_ns()/1.0e6
 
             self.ibi_update.emit({'timestamp': timestamp, 'ibi': ibi})
             self.hr_update.emit({'timestamp': timestamp, 'hr': hr})
+
+            print('HR: ', hr, 'ibi: ', ibi)
 
     def __ecg_data_handler(self, _, data):
         # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]
