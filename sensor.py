@@ -1,3 +1,5 @@
+import time
+
 from PySide6.QtBluetooth import (
     QBluetoothDeviceDiscoveryAgent,
     QLowEnergyController,
@@ -205,6 +207,7 @@ class SensorClient(QObject):
         """
         data = data.data()  # convert from QByteArray to Python bytes
 
+
         byte0 = data[0]
         uint8_format = (byte0 & 1) == 0
         energy_expenditure = ((byte0 >> 3) & 1) == 1
@@ -233,8 +236,10 @@ class SensorClient(QObject):
             # transmit data in milliseconds.
             ibi = math.ceil(ibi / 1024 * 1000)
 
-            self.ibi_update.emit(ibi)
-            self.hr_update.emit(hr)
+            timestamp = time.time_ns()/1.0e9
+
+            self.ibi_update.emit({'timestamp': timestamp, 'ibi': ibi})
+            self.hr_update.emit({'timestamp': timestamp, 'hr': hr})
 
     def __ecg_data_handler(self, _, data):
         # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]

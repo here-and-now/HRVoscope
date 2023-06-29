@@ -60,13 +60,13 @@ class View(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
-
     def plot_ibi(self, df):
-        self.ibi_widget.update_series(df)
-
+        #print(df)
+        # self.ibi_widget.update_series(df['timestamp'], df['ibi'])
+        self.ibi_widget.update_series(df.index, df['ibi'])
     def plot_hr(self, df):
-        self.hr_widget.update_series(df)
-
+        # self.hr_widget.update_series(df['timestamp'], df['hr'])
+        self.hr_widget.update_series(df.index, df['hr'])
     def plot_pacer_disk(self):
         coordinates = self.pacer.update(self.model.breathing_rate)
         self.pacer_widget.update_series(*coordinates)
@@ -143,7 +143,7 @@ class XYSeriesWidget(QChartView):
 
         self.x_axis = QValueAxis()
         self.x_axis.setLabelFormat("%i")
-        self.x_axis.setRange(0, 1000)
+        # self.x_axis.setRange(0, 1000)
         self.plot.addAxis(self.x_axis, Qt.AlignBottom)
         self.time_series.attachAxis(self.x_axis)
 
@@ -155,18 +155,19 @@ class XYSeriesWidget(QChartView):
 
         self.setChart(self.plot)
 
-
-    def update_series(self, df):
-        x_values = df.index.values
-        y_values = df.values
+    def update_series(self, x_values, y_values):
         self.time_series.clear()
         for x, y in zip(x_values, y_values):
             self.time_series.append(x, y)
-        self.set_dynamic_range(x_values,y_values)
+        self.set_dynamic_range(x_values, y_values)
+
+
 
     def set_dynamic_range(self, x_values, y_values):
-        self.x_axis.setRange(np.min(x_values), np.max(x_values))
-        self.y_axis.setRange(np.min(y_values), np.max(y_values))
+        if len(x_values) > 0:
+            self.x_axis.setRange(min(x_values), max(x_values))
+        if len(y_values) > 0:
+            self.y_axis.setRange(min(y_values), max(y_values))
 
 
 
