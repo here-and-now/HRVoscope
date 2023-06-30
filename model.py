@@ -9,6 +9,7 @@ class Model(QObject):
     hr_dataframe_update = Signal(object)
     hrv_metrics_dataframe_update = Signal(object)
     ecg_dataframe_update = Signal(object)
+    acc_dataframe_update = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -16,6 +17,7 @@ class Model(QObject):
         self.hr_dataframe = pd.DataFrame()
         self.hrv_dataframe = pd.DataFrame()
         self.ecg_dataframe = pd.DataFrame()
+        self.acc_dataframe = pd.DataFrame()
 
 
 
@@ -27,7 +29,6 @@ class Model(QObject):
         self.ibi_dataframe = pd.concat([self.ibi_dataframe, new_row])
         self.ibi_dataframe.index = pd.DatetimeIndex(self.ibi_dataframe.index)
         self.ibi_dataframe_update.emit(self.ibi_dataframe)
-        print('Calc HRVoscope')
         self.calculate_hrv_metrics()
 
     @Slot(dict)
@@ -37,6 +38,24 @@ class Model(QObject):
         self.hr_dataframe = pd.concat([self.hr_dataframe, new_row])
         self.hr_dataframe.index = pd.DatetimeIndex(self.hr_dataframe.index)
         self.hr_dataframe_update.emit(self.hr_dataframe)
+
+    @Slot(dict)
+    def update_ecg_dataframe(self, value):
+        timestamp = pd.to_datetime(value['timestamp'], unit='ns')
+        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp])
+        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
+        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
+        self.ecg_dataframe_update.emit(self.ecg_dataframe)
+
+    @Slot(dict)
+    def update_acc_dataframe(self, value):
+        timestamp = pd.to_datetime(value['timestamp'], unit='ns')
+        new_row = pd.DataFrame({'acc': [value['x'], value['y'], value['z'], value['mag']]}, index=[timestamp])
+        self.acc_dataframe = pd.concat([self.acc_dataframe, new_row])
+        self.acc_dataframe.index = pd.DatetimeIndex(self.acc_dataframe.index)
+        self.acc_dataframe_update.emit(self.acc_dataframe)
+        print(self.acc_dataframe)
+
 
     def calculate_hrv_metrics(self):
         ibi_values = self.ibi_dataframe['ibi'].values
@@ -57,12 +76,4 @@ class Model(QObject):
         # print(self.hrv_dataframe)
 
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
-    @Slot(dict)
-    def update_ecg_dataframe(self, value):
-        timestamp = pd.to_datetime(value['timestamp'], unit='ms')
-        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp])
-        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
-        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
-        self.ecg_dataframe_update.emit(self.ecg_dataframe)
 
-        print(self.ecg_dataframe)

@@ -233,11 +233,8 @@ class SensorClient(QObject):
     def _ecg_data_handler(self, _, data):
         # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]
         # 00 = ECG; EA 1C AC CC 99 43 52 08 = last sample timestamp in nanoseconds; 00 = ECG frameType, sample0 = [68 00 00] microVolts(104) , sample1, sample2, ....
-        print('ECG start')
-        print(data[0])
-        # if data[0] == 0x00:
+
         if data[0] == b'\x00':
-            print('Its 0x00')
             timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9
             step = 3
             time_step = 1.0 / self.ECG_SAMPLING_FREQ
@@ -249,6 +246,37 @@ class SensorClient(QObject):
                 ecg = convert_array_to_signed_int(samples, offset, step)
                 offset += step
                 self.ecg_update.emit({'timestamp': sample_timestamp, 'ecg': ecg})
+                sample_timestamp += time_step
+
+    def _acc_data_handler(self, sender, data):
+        # [02 EA 54 A2 42 8B 45 52 08 01 45 FF E4 FF B5 03 45 FF E4 FF B8 03 ...]
+        # 02=ACC,
+        # EA 54 A2 42 8B 45 52 08 = last sample timestamp in nanoseconds,
+        # 01 = ACC frameType,
+        # sample0 = [45 FF E4 FF B5 03] x-axis(45 FF=-184 millig) y-axis(E4 FF=-28 millig) z-axis(B5 03=949 millig) ,
+        # sample1, sample2,
+        print('acc data')
+        if data[0] == b'\x02':
+            print('entering acc')
+            timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9  # timestamp of the last sample
+            frame_type = data[9]
+            resolution = (frame_type + 1) * 8  # 16 bit
+            time_step = 0.005  # 200 Hz sample rate
+            step = math.ceil(resolution / 8.0)
+            samples = data[10:]
+            n_samples = math.floor(len(samples) / (step * 3))
+            sample_timestamp = timestamp - (n_samples - 1) * time_step
+            offset = 0
+            while offset < len(samples):
+                x = convert_array_to_signed_int(samples, offset, step)
+                offset += step
+                y = convert_array_to_signed_int(samples, offset, step)
+                offset += step
+                z = convert_array_to_signed_int(samples, offset, step)
+                offset += step
+                mag = np.linalg.norm([x, y, z])
+
+                self.acc_update.emit({'timestamp': sample_timestamp, 'x': x, 'y': y, 'z': z, 'mag': mag})
                 sample_timestamp += time_step
 
     def connect_client(self, sensor):

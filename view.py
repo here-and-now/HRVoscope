@@ -69,6 +69,11 @@ class View(QMainWindow):
         self.ecg_widget = XYSeriesWidget()
         self.model.ecg_dataframe_update.connect(self.plot_ecg)
         self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
+        # ACC
+        self.acc_widget = XYSeriesWidget()
+        self.model.acc_dataframe_update.connect(self.plot_acc)
+        self.sensor.acc_update.connect(self.model.update_acc_dataframe)
+
 
         # Layout stuff
         self.layout = QHBoxLayout()
@@ -76,6 +81,7 @@ class View(QMainWindow):
         # self.layout.addWidget(self.hr_widget)
         # self.layout.addWidget(self.hrv_widget)
         self.layout.addWidget(self.ecg_widget)
+        self.layout.addWidget(self.acc_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(self.layout)
@@ -107,11 +113,22 @@ class View(QMainWindow):
 
     def plot_ecg(self, df):
         if not bool(self.ecg_widget.series_dict):
-            self.ecg_widget.add_series("ECG", x_range=[0, 10000], y_range=[-1000, 1000], line_color=BLUE, pen_width=2)
+            self.ecg_widget.add_series("ECG", x_range=[0, 1000], y_range=[-1500, 1500], line_color=BLUE, pen_width=2)
         else:
+            # reduce to last 1000 points
+            df = df.iloc[-1000:]
             index = [i for i in range(df.index.shape[0])]
             # df = self.downsample_dataframe(df, 1000)
             self.ecg_widget.update_series('ECG', index, df['ecg'].values)
+    def plot_acc(self, df):
+        if not bool(self.acc_widget.series_dict):
+            self.acc_widget.add_series("ACC", x_range=[0, 1000], y_range=[-1500, 1500], line_color=BLUE, pen_width=2)
+        else:
+            # reduce to last 1000 points
+            df = df.iloc[-1000:]
+            index = [i for i in range(df.index.shape[0])]
+            # df = self.downsample_dataframe(df, 1000)
+            self.acc_widget.update_series('ACC', index, df['mag'].values)
     def downsample_dataframe(self, df, target_points):
         if len(df) <= target_points:
             return df
