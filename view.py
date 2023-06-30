@@ -44,9 +44,11 @@ class View(QMainWindow):
         self.sensor.connect_client(self.sensor)
 
         self.HRV_RMSSD_RANGE = [0, 200]
-        self.HRV_SDNN_RANGE = [0, 2000]
+        self.HRV_SDNN_RANGE = [0, 200]
         self.HRV_pNN20_RANGE = [0, 100]
         self.HRV_pNN50_RANGE = [0, 100]
+
+        self.HRV_METRICS_X_RANGE = [0, 200]
 
         # # IBI
         # self.ibi_widget = XYSeriesWidget()
@@ -59,13 +61,10 @@ class View(QMainWindow):
         # # self.model.hr_dataframe_update.connect(self.printmock)
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
 
-
         # HRV
 
         self.hrv_widget = XYSeriesWidget()
         self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
-
-
 
         # Layout stuff
         self.layout = QHBoxLayout()
@@ -85,34 +84,21 @@ class View(QMainWindow):
         self.ibi_widget.update_series(index, df['ibi'])
     def plot_hr(self, df):
         # self.hr_widget.update_series(df['timestamp'], df['hr'])
-        df = self.downsample_dataframe(df, 100)
+        df = self.downsample_dataframe(df, 200)
         index = [i for i in range(df.index.shape[0])]
         self.hr_widget.update_series(index, df['hr'])
 
     def plot_hrv(self, df):
         if not bool(self.hrv_widget.series_dict):
-            # x_values = []
-            # y_values = []
-            self.hrv_widget.add_series("SDNN", x_range=[0, 100], y_range=self.HRV_SDNN_RANGE, line_color=RED, pen_width=2)
+            self.hrv_widget.add_series("SDNN", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_SDNN_RANGE, line_color=RED, pen_width=2)
+            self.hrv_widget.add_series("RMSSD", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_RMSSD_RANGE, line_color=BLUE, pen_width=2)
         else:
             index = [i for i in range(df.index.shape[0])]
-            self.hrv_widget.update_series('SDNN', index, df['SDNN'].values )
-
-    def _downsample_dataframe(self, df, target_points):
-        # looks good, but currently not resampling the datetimeindex
-        if len(df) <= target_points:
-            return df
-
-        df_downsampled = pd.DataFrame()
-
-        for column in df.columns:
-            downsampled_column = signal.resample(df[column].values, target_points)
-            df_downsampled[column] = downsampled_column
-
-        resampled_index = signal.resample(df.index, target_points)
-        df_downsampled.index = pd.to_datetime(resampled_index)
-
-        return df_downsampled
+            
+            df = df.dropna()
+            df = self.downsample_dataframe(df, self.HRV_METRICS_X_RANGE[1])
+            self.hrv_widget.update_series('SDNN', index, df['SDNN'].values)
+            self.hrv_widget.update_series('RMSSD', index, df['RMSSD'].values)
 
     def downsample_dataframe(self, df, target_points):
         if len(df) <= target_points:
@@ -122,7 +108,7 @@ class View(QMainWindow):
 
         for column in df.columns:
             x = df.index.values.astype(np.float64)
-            f = interp1d(x, df[column], kind='cubic')
+            f = interp1d(x, df[column], kind='linear')
             target_index = pd.date_range(start=df.index[0], end=df.index[-1], periods=target_points)
             target_x = target_index.values.astype(np.float64)
             interpolated_values = f(target_x)
@@ -131,64 +117,6 @@ class View(QMainWindow):
         df_downsampled.index = target_index
 
         return df_downsampled
-
-    def plot_pacer_disk(self):
-        coordinates = self.pacer.update(self.model.breathing_rate)
-        self.pacer_widget.update_series(*coordinates)
-
-class PacerWidget(QChartView):
-    def __init__(self, x_values=None, y_values=None, color=BLUE):
-        super().__init__()
-
-        self.setSizePolicy(
-            QSizePolicy(
-                QSizePolicy.Fixed,  # enforce self.sizeHint by fixing horizontal (width) policy
-                QSizePolicy.Preferred,
-            )
-        )
-
-        self.plot = QChart()
-        self.plot.legend().setVisible(False)
-        self.plot.setBackgroundRoundness(0)
-        self.plot.setMargins(QMargins(0, 0, 0, 0))
-
-        self.disc_circumference_coord = QSplineSeries()
-        if x_values is not None and y_values is not None:
-            self._instantiate_series(x_values, y_values)
-        self.disk = QAreaSeries(self.disc_circumference_coord)
-        self.disk.setColor(color)
-        self.plot.addSeries(self.disk)
-
-        self.x_axis = QValueAxis()
-        self.x_axis.setRange(-1, 1)
-        self.x_axis.setVisible(False)
-        self.plot.addAxis(self.x_axis, Qt.AlignBottom)
-        self.disk.attachAxis(self.x_axis)
-
-        self.y_axis = QValueAxis()
-        self.y_axis.setRange(-1, 1)
-        self.y_axis.setVisible(False)
-        self.plot.addAxis(self.y_axis, Qt.AlignLeft)
-        self.disk.attachAxis(self.y_axis)
-
-        self.setChart(self.plot)
-
-    def _instantiate_series(self, x_values, y_values):
-        for x, y in zip(x_values, y_values):
-            self.disc_circumference_coord.append(x, y)
-
-    def update_series(self, x_values, y_values):
-        for i, (x, y) in enumerate(zip(x_values, y_values)):
-            self.disc_circumference_coord.replace(i, x, y)
-
-    def sizeHint(self):
-        height = self.size().height()
-        return QSize(height, height)  # force square aspect ratio
-
-    def resizeEvent(self, event):
-        if self.size().width() != self.size().height():
-            self.updateGeometry()  # adjusts geometry based on sizeHint
-        return super().resizeEvent(event)
 
 class XYSeriesWidget(QChartView):
     def __init__(self):
@@ -201,6 +129,7 @@ class XYSeriesWidget(QChartView):
 
         self.series_dict = {}
         self.axes = []
+        self.main_axis = None
 
         self.setChart(self.plot)
 
@@ -212,9 +141,13 @@ class XYSeriesWidget(QChartView):
         pen.setColor(line_color)
         series.setPen(pen)
 
-        axis_x = QValueAxis()
-        axis_x.setLabelFormat("%i")
-        axis_x.setRange(x_range[0], x_range[1])
+        if self.main_axis is None:
+            axis_x = QValueAxis()
+            axis_x.setLabelFormat("%i")
+            axis_x.setRange(x_range[0], x_range[1])
+            self.main_axis = axis_x
+        else:
+            axis_x = self.main_axis
 
         axis_y = QValueAxis()
         axis_y.setLabelFormat("%i")
@@ -235,6 +168,7 @@ class XYSeriesWidget(QChartView):
         if series is not None:
             data = [QPointF(x, y) for x, y in zip(x_values, y_values)]
             series.replace(data)
+
     def set_dynamic_range(self, series_name, x_values, y_values):
         axis_x, axis_y = self._get_axes_by_name(series_name)
         if axis_x and axis_y:
