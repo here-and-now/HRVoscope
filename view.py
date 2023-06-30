@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QStylePainter
 )
-from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer, QMargins, QSize, QDateTime
+from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer, QMargins, QSize, QDateTime, QPointF
 from PySide6.QtGui import QIcon, QLinearGradient, QBrush, QGradient, QColor
 from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAreaSeries, QLineSeries, QScatterSeries, QDateTimeAxis
 
@@ -43,30 +43,40 @@ class View(QMainWindow):
         self.sensor = SensorClient()
         self.sensor.connect_client(self.sensor)
 
-        # IBI
-        self.ibi_widget = XYSeriesWidget()
-        self.model.ibi_dataframe_update.connect(self.plot_ibi)
-        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+        self.HRV_RMSSD_RANGE = [0, 200]
+        self.HRV_SDNN_RANGE = [0, 2000]
+        self.HRV_pNN20_RANGE = [0, 100]
+        self.HRV_pNN50_RANGE = [0, 100]
 
-        # HR
-        self.hr_widget = XYSeriesWidget()
-        self.model.hr_dataframe_update.connect(self.plot_hr)
-        # self.model.hr_dataframe_update.connect(self.printmock)
+        # # IBI
+        # self.ibi_widget = XYSeriesWidget()
+        # self.model.ibi_dataframe_update.connect(self.plot_ibi)
+        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+        #
+        # # HR
+        # self.hr_widget = XYSeriesWidget()
+        # self.model.hr_dataframe_update.connect(self.plot_hr)
+        # # self.model.hr_dataframe_update.connect(self.printmock)
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
+
+
+        # HRV
+
+        self.hrv_widget = XYSeriesWidget()
+        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
+
 
 
         # Layout stuff
         self.layout = QHBoxLayout()
-        self.layout.addWidget(self.ibi_widget)
-        self.layout.addWidget(self.hr_widget)
+        # self.layout.addWidget(self.ibi_widget)
+        # self.layout.addWidget(self.hr_widget)
+        self.layout.addWidget(self.hrv_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(self.layout)
 
         self.setCentralWidget(central_widget)
-
-    def printmock(self,df):
-        print(df.index[-1])
 
     def plot_ibi(self, df):
         # self.ibi_widget.update_series(df['timestamp'], df['ibi'])
@@ -78,6 +88,15 @@ class View(QMainWindow):
         df = self.downsample_dataframe(df, 100)
         index = [i for i in range(df.index.shape[0])]
         self.hr_widget.update_series(index, df['hr'])
+
+    def plot_hrv(self, df):
+        if not bool(self.hrv_widget.series_dict):
+            # x_values = []
+            # y_values = []
+            self.hrv_widget.add_series("SDNN", x_range=[0, 100], y_range=self.HRV_SDNN_RANGE, line_color=RED, pen_width=2)
+        else:
+            index = [i for i in range(df.index.shape[0])]
+            self.hrv_widget.update_series('SDNN', index, df['SDNN'].values )
 
     def _downsample_dataframe(self, df, target_points):
         # looks good, but currently not resampling the datetimeindex
@@ -172,56 +191,73 @@ class PacerWidget(QChartView):
         return super().resizeEvent(event)
 
 class XYSeriesWidget(QChartView):
-    def __init__(self, x_values=None, y_values=None, line_color=BLUE):
+    def __init__(self):
         super().__init__()
 
         self.plot = QChart()
-        self.plot.legend().setVisible(False)
+        self.plot.legend().setVisible(True)
         self.plot.setBackgroundRoundness(0)
         self.plot.setMargins(QMargins(0, 0, 0, 0))
 
-        self.time_series = QSplineSeries()
-        # self.time_series = QScatterSeries()
-        self.plot.addSeries(self.time_series)
-        pen = self.time_series.pen()
-        pen.setWidth(1)
-        pen.setColor(line_color)
-        self.time_series.setPen(pen)
-
-        self.x_axis = QValueAxis()
-        # self.x_axis = QDateTimeAxis()
-        self.x_axis.setLabelFormat("%i")
-        self.x_axis.setRange(0, 100)
-        self.plot.addAxis(self.x_axis, Qt.AlignBottom)
-        self.time_series.attachAxis(self.x_axis)
-
-        self.y_axis = QValueAxis()
-        self.y_axis.setLabelFormat("%i")
-        self.y_axis.setRange(0, 2000)
-        self.plot.addAxis(self.y_axis, Qt.AlignLeft)
-        self.time_series.attachAxis(self.y_axis)
+        self.series_dict = {}
+        self.axes = []
 
         self.setChart(self.plot)
 
+    def add_series(self, series_name, x_values=None, y_values=None, x_range=[0, 200], y_range=[0, 200], line_color=BLUE,
+                   pen_width=1):
+        series = QSplineSeries()
+        pen = series.pen()
+        pen.setWidth(pen_width)
+        pen.setColor(line_color)
+        series.setPen(pen)
 
-    def update_series(self, x_values, y_values):
-        self.time_series.clear()
-        for x, y in zip(x_values, y_values):
-            # x_timestamp = x.to_pydatetime()
-            # x_qdatetime = QDateTime(x_timestamp.date(), x_timestamp.time(), Qt.UTC)
-            # self.time_series.append(x_qdatetime.toMSecsSinceEpoch(), y)
-            self.time_series.append(x,y)
-        # self.set_dynamic_range(x_values, y_values)
+        axis_x = QValueAxis()
+        axis_x.setLabelFormat("%i")
+        axis_x.setRange(x_range[0], x_range[1])
 
-    def set_dynamic_range(self, x_values, y_values):
-        if len(x_values) > 0:
-            x_min = min(x_values)#to_pydatetime()
-            x_max = max(x_values)#.to_pydatetime()
+        axis_y = QValueAxis()
+        axis_y.setLabelFormat("%i")
+        axis_y.setRange(y_range[0], y_range[1])
 
-            self.x_axis.setRange(x_min, x_max)
-            # self.x_axis.setFormat("yyyy-MM-dd HH:mm:ss")
+        self.plot.addSeries(series)
+        self.plot.addAxis(axis_x, Qt.AlignBottom)
+        self.plot.addAxis(axis_y, Qt.AlignLeft)
 
-        if len(y_values) > 0:
-            self.y_axis.setRange(min(y_values), max(y_values))
+        series.attachAxis(axis_x)
+        series.attachAxis(axis_y)
+
+        self.series_dict[series_name] = series
+        self.axes.append((axis_x, axis_y))
+
+    def update_series(self, series_name, x_values, y_values):
+        series = self.series_dict.get(series_name)
+        if series is not None:
+            data = [QPointF(x, y) for x, y in zip(x_values, y_values)]
+            series.replace(data)
+    def set_dynamic_range(self, series_name, x_values, y_values):
+        axis_x, axis_y = self._get_axes_by_name(series_name)
+        if axis_x and axis_y:
+            if len(x_values) > 0:
+                x_min = min(x_values)
+                x_max = max(x_values)
+                axis_x.setRange(x_min, x_max)
+
+            if len(y_values) > 0:
+                y_min = min(y_values)
+                y_max = max(y_values)
+                axis_y.setRange(y_min, y_max)
+
+    def _get_axes_by_name(self, series_name):
+        series_index = self._get_series_index_by_name(series_name)
+        if series_index is not None and series_index < len(self.axes):
+            return self.axes[series_index]
+        return None, None
+
+    def _get_series_index_by_name(self, series_name):
+        series = self.series_dict.get(series_name)
+        if series is not None:
+            return list(self.series_dict.values()).index(series)
+        return None
 
 

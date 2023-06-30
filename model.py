@@ -7,7 +7,7 @@ class Model(QObject):
 
     ibi_dataframe_update = Signal(object)
     hr_dataframe_update = Signal(object)
-    hrv_metrics_update = Signal(object)
+    hrv_metrics_dataframe_update = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -23,7 +23,7 @@ class Model(QObject):
         self.ibi_dataframe = pd.concat([self.ibi_dataframe, new_row])
         self.ibi_dataframe.index = pd.DatetimeIndex(self.ibi_dataframe.index)
         self.ibi_dataframe_update.emit(self.ibi_dataframe)
-
+        print('Calc HRVoscope')
         self.calculate_hrv_metrics()
 
     @Slot(dict)
@@ -50,6 +50,6 @@ class Model(QObject):
 
         self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
 
-        print(hrv_metrics)
+        print(self.hrv_dataframe)
 
-        self.hrv_metrics_update.emit(hrv_metrics)
+        self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
