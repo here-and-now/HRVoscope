@@ -62,15 +62,20 @@ class View(QMainWindow):
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
 
         # HRV
-
         self.hrv_widget = XYSeriesWidget()
         self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
+
+        # ECG
+        self.ecg_widget = XYSeriesWidget()
+        self.model.ecg_dataframe_update.connect(self.plot_ecg)
+        self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
 
         # Layout stuff
         self.layout = QHBoxLayout()
         # self.layout.addWidget(self.ibi_widget)
         # self.layout.addWidget(self.hr_widget)
-        self.layout.addWidget(self.hrv_widget)
+        # self.layout.addWidget(self.hrv_widget)
+        self.layout.addWidget(self.ecg_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(self.layout)
@@ -94,12 +99,19 @@ class View(QMainWindow):
             self.hrv_widget.add_series("RMSSD", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_RMSSD_RANGE, line_color=BLUE, pen_width=2)
         else:
             index = [i for i in range(df.index.shape[0])]
-            
+
             df = df.dropna()
             df = self.downsample_dataframe(df, self.HRV_METRICS_X_RANGE[1])
             self.hrv_widget.update_series('SDNN', index, df['SDNN'].values)
             self.hrv_widget.update_series('RMSSD', index, df['RMSSD'].values)
 
+    def plot_ecg(self, df):
+        if not bool(self.ecg_widget.series_dict):
+            self.ecg_widget.add_series("ECG", x_range=[0, 10000], y_range=[-1000, 1000], line_color=BLUE, pen_width=2)
+        else:
+            index = [i for i in range(df.index.shape[0])]
+            # df = self.downsample_dataframe(df, 1000)
+            self.ecg_widget.update_series('ECG', index, df['ecg'].values)
     def downsample_dataframe(self, df, target_points):
         if len(df) <= target_points:
             return df

@@ -8,12 +8,16 @@ class Model(QObject):
     ibi_dataframe_update = Signal(object)
     hr_dataframe_update = Signal(object)
     hrv_metrics_dataframe_update = Signal(object)
+    ecg_dataframe_update = Signal(object)
 
     def __init__(self):
         super().__init__()
         self.ibi_dataframe = pd.DataFrame()
         self.hr_dataframe = pd.DataFrame()
         self.hrv_dataframe = pd.DataFrame()
+        self.ecg_dataframe = pd.DataFrame()
+
+
 
 
     @Slot(dict)
@@ -50,6 +54,15 @@ class Model(QObject):
 
         self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
 
-        print(self.hrv_dataframe)
+        # print(self.hrv_dataframe)
 
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
+    @Slot(dict)
+    def update_ecg_dataframe(self, value):
+        timestamp = pd.to_datetime(value['timestamp'], unit='ms')
+        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp])
+        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
+        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
+        self.ecg_dataframe_update.emit(self.ecg_dataframe)
+
+        print(self.ecg_dataframe)

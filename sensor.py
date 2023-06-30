@@ -17,20 +17,12 @@ from utils import convert_array_to_signed_int, convert_to_unsigned_long
 import numpy as np
 import pandas as pd
 class SensorClient(QObject):
-    """
-    Connect to a Polar sensor that acts as a Bluetooth server / peripheral.
-    On Windows, the sensor must already be paired with the machine running
-    OpenHRV. Pairing isn't implemented in Qt6.
-
-    In Qt terminology client=central, server=peripheral.
-    """
 
     ibi_update = Signal(object)
     hr_update = Signal(object)
     ecg_update = Signal(object)
     acc_update = Signal(object)
     status_update = Signal(str)
-
 
     def __init__(self):
         super().__init__()
@@ -47,9 +39,6 @@ class SensorClient(QObject):
         self.acc_service = None
         self.acc_notification = None
 
-        self.ecg_stream_values = []
-        self.ecg_stream_times = []
-
 
         self.ENABLE_NOTIFICATION = QByteArray.fromHex(b"0100")
         self.DISABLE_NOTIFICATION = QByteArray.fromHex(b"0000")
@@ -65,7 +54,6 @@ class SensorClient(QObject):
             "fb005c80-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for connection establishment with device ##
         self.PMD_CONTROL = QBluetoothUuid("fb005c81-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for Request of stream settings ##
         self.PMD_DATA = QBluetoothUuid("fb005c82-02e7-f387-1cad-8acd2d8df0c8")  ## UUID for Request of start stream ##
-
 
         self.ACC_SAMPLING_FREQ = 200
         self.ECG_SAMPLING_FREQ = 130
@@ -131,6 +119,7 @@ class SensorClient(QObject):
         self.hr_service.stateChanged.connect(self._start_hr_notification)
         self.hr_service.characteristicChanged.connect(self._hr_data_handler)
         self.hr_service.discoverDetails()
+
     def _start_hr_notification(self, state):
         if state != QLowEnergyService.ServiceDiscovered:
             return
@@ -241,14 +230,13 @@ class SensorClient(QObject):
             self.ibi_update.emit({'timestamp': timestamp, 'ibi': ibi})
             self.hr_update.emit({'timestamp': timestamp, 'hr': hr})
 
-            print('HR: ', hr, 'ibi: ', ibi)
-
-    def __ecg_data_handler(self, _, data):
+    def _ecg_data_handler(self, _, data):
         # [00 EA 1C AC CC 99 43 52 08 00 68 00 00 58 00 00 46 00 00 3D 00 00 32 00 00 26 00 00 16 00 00 04 00 00 ...]
         # 00 = ECG; EA 1C AC CC 99 43 52 08 = last sample timestamp in nanoseconds; 00 = ECG frameType, sample0 = [68 00 00] microVolts(104) , sample1, sample2, ....
         print('ECG start')
-        print(data)
-        if data[0] == 0x00:
+        print(data[0])
+        # if data[0] == 0x00:
+        if data[0] == b'\x00':
             print('Its 0x00')
             timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9
             step = 3
@@ -260,31 +248,8 @@ class SensorClient(QObject):
             while offset < len(samples):
                 ecg = convert_array_to_signed_int(samples, offset, step)
                 offset += step
-                self.ecg_stream_values.extend([ecg])
-                self.ecg_stream_times.extend([sample_timestamp])
+                self.ecg_update.emit({'timestamp': sample_timestamp, 'ecg': ecg})
                 sample_timestamp += time_step
-
-            print(self.ecg_stream_values)
-    def _ecg_data_handler(self, _, data):
-        """
-        The ECG data handler receives ECG data from the sensor. Each data packet contains
-        a sequence number and a raw ECG data frame. The frame is a 13-byte array that
-        represents the ECG data of 3 ECG channels (x, y, and z) at a specific timestamp.
-
-        The ECG data handler extracts the raw ECG data and emits it as a signal.
-
-        Args:
-            data (QByteArray): The raw ECG data packet.
-        """
-        sequence_number = int.from_bytes(data[:4], byteorder='little')
-        raw_ecg_data = data[4:]
-        ecg_values = []
-
-        for i in range(0, len(raw_ecg_data), 2):
-            ecg_value = convert_array_to_signed_int(raw_ecg_data, i, 2)
-            ecg_values.append(ecg_value)
-
-        self.ecg_update.emit(ecg_values)
 
     def connect_client(self, sensor):
         if self.client:
