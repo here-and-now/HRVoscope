@@ -50,13 +50,12 @@ class Model(QObject):
     @Slot(dict)
     def update_acc_dataframe(self, value):
         timestamp = pd.to_datetime(value['timestamp'], unit='ns')
-        new_row = pd.DataFrame({'acc': [value['x'], value['y'], value['z'], value['mag']]}, index=[timestamp])
+        new_row = pd.DataFrame({'x': [value['x']], 'y': [value['y']], 'z': [value['z']], 'mag': [value['mag']]},
+                               index=[timestamp])
         self.acc_dataframe = pd.concat([self.acc_dataframe, new_row])
         self.acc_dataframe.index = pd.DatetimeIndex(self.acc_dataframe.index)
         self.acc_dataframe_update.emit(self.acc_dataframe)
         print(self.acc_dataframe)
-
-
     def calculate_hrv_metrics(self):
         ibi_values = self.ibi_dataframe['ibi'].values
         ibi_timestamps = self.ibi_dataframe.index

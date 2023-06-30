@@ -247,6 +247,81 @@ class SensorClient(QObject):
                 offset += step
                 self.ecg_update.emit({'timestamp': sample_timestamp, 'ecg': ecg})
                 sample_timestamp += time_step
+    def _connect_acc_service(self):
+        acc_service = [s for s in self.client.services() if s == self.PMD_SERVICE]
+        if not acc_service:
+            print(f"Couldn't find ACC service on {self.mac_address}.")
+            return
+        self.acc_service = self.client.createServiceObject(*acc_service)
+        if not self.acc_service:
+            print(
+                f"Couldn't establish connection to ACC service on {self.mac_address}."
+            )
+            return
+        self.acc_service.stateChanged.connect(self._start_acc_notification)
+        self.acc_service.characteristicChanged.connect(self._acc_data_handler)
+        self.acc_service.discoverDetails()
+
+    def _start_acc_notification(self, state):
+        if state != QLowEnergyService.ServiceDiscovered:
+            return
+        acc_char_control = self.acc_service.characteristic(self.PMD_CONTROL)
+        acc_char_data = self.acc_service.characteristic(self.PMD_DATA)
+        if not acc_char_control.isValid():
+            print(f"Couldn't find ACC control characteristic on {self.mac_address}.")
+            return
+        if not acc_char_data.isValid():
+            print(f"Couldn't find ACC data characteristic on {self.mac_address}.")
+            return
+        self.acc_control_notification = acc_char_control.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
+        )
+        self.acc_data_notification = acc_char_data.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
+        )
+        if not self.acc_control_notification.isValid():
+            print("ACC control characteristic is invalid.")
+            return
+        self.acc_service.writeCharacteristic(acc_char_control, self.ACC_WRITE, QLowEnergyService.WriteWithResponse)
+        self.acc_service.writeDescriptor(self.acc_data_notification, self.ENABLE_NOTIFICATION)
+
+    def _connect_acc_service(self):
+        acc_service = [s for s in self.client.services() if s == self.PMD_SERVICE]
+        if not acc_service:
+            print(f"Couldn't find ACC service on {self.mac_address}.")
+            return
+        self.acc_service = self.client.createServiceObject(*acc_service)
+        if not self.acc_service:
+            print(
+                f"Couldn't establish connection to ACC service on {self.mac_address}."
+            )
+            return
+        self.acc_service.stateChanged.connect(self._start_acc_notification)
+        self.acc_service.characteristicChanged.connect(self._acc_data_handler)
+        self.acc_service.discoverDetails()
+
+    def _start_acc_notification(self, state):
+        if state != QLowEnergyService.ServiceDiscovered:
+            return
+        acc_char_control = self.acc_service.characteristic(self.PMD_CONTROL)
+        acc_char_data = self.acc_service.characteristic(self.PMD_DATA)
+        if not acc_char_control.isValid():
+            print(f"Couldn't find ACC control characteristic on {self.mac_address}.")
+            return
+        if not acc_char_data.isValid():
+            print(f"Couldn't find ACC data characteristic on {self.mac_address}.")
+            return
+        self.acc_control_notification = acc_char_control.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
+        )
+        self.acc_data_notification = acc_char_data.descriptor(
+            QBluetoothUuid.DescriptorType.ClientCharacteristicConfiguration
+        )
+        if not self.acc_control_notification.isValid():
+            print("ACC control characteristic is invalid.")
+            return
+        self.acc_service.writeCharacteristic(acc_char_control, self.ACC_WRITE, QLowEnergyService.WriteWithResponse)
+        self.acc_service.writeDescriptor(self.acc_data_notification, self.ENABLE_NOTIFICATION)
 
     def _acc_data_handler(self, sender, data):
         # [02 EA 54 A2 42 8B 45 52 08 01 45 FF E4 FF B5 03 45 FF E4 FF B8 03 ...]
@@ -259,7 +334,7 @@ class SensorClient(QObject):
         if data[0] == b'\x02':
             print('entering acc')
             timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9  # timestamp of the last sample
-            frame_type = data[9]
+            frame_type = int.from_bytes(data[9], byteorder='big')
             resolution = (frame_type + 1) * 8  # 16 bit
             time_step = 0.005  # 200 Hz sample rate
             step = math.ceil(resolution / 8.0)
@@ -300,6 +375,7 @@ class SensorClient(QObject):
 
         self.client.discoveryFinished.connect(self._connect_hr_service)
         self.client.discoveryFinished.connect(self._connect_ecg_service)
+        self.client.discoveryFinished.connect(self._connect_acc_service)
 
         self.client.disconnected.connect(self._reset_connection)
         self.client.connectToDevice()
