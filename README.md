@@ -1,15 +1,15 @@
 # Roadmap
 
-- Read and display ECG from Polar H10 
+- Read and display ECG from Polar H10 :heavy_check_mark: 
 - Calculate various HRV metrics
-	- SDRR
-	- SDANN
-	- pNN50
-	- pNN20
-	- RMSSD
+	- SDRR 
+	- SDANN :heavy_check_mark:
+	- pNN50 :heavy_check_mark:
+	- pNN20 :heavy_check_mark:
+	- RMSSD :heavy_check_mark:
 	- LF/HF
 	- Poincare plot
-- Live plot HRV metrics
+- Live plot HRV metrics :heavy_check_mark:
 - Implement different breathing techniques pacers
 	- Box breathing :heavy_check_mark:
 	- Right nostril breathing/left nostril breathing pranayama
@@ -17,7 +17,7 @@
 	- ...
 - Spectral analysis of HRV
 - Log data for different breathing techniques for further analysis
-- Accelerometer data, cause why not
+- Accelerometer data, cause why not :heavy_check_mark:
 - Android app
 
 
