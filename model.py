@@ -19,9 +19,6 @@ class Model(QObject):
         self.ecg_dataframe = pd.DataFrame()
         self.acc_dataframe = pd.DataFrame()
 
-
-
-
     @Slot(dict)
     def update_ibi_dataframe(self, value):
         timestamp = pd.to_datetime(value['timestamp'], unit='ms')
@@ -72,5 +69,6 @@ class Model(QObject):
         )
 
         self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
+        print(self.hrv_dataframe)
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
 
