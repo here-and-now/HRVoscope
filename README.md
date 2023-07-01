@@ -26,6 +26,7 @@
 ### Basics
 
 - [An Overview of Heart Rate Variability Metrics and Norms (2017)](https://www.frontiersin.org/articles/10.3389/fpubh.2017.00258/full)
+- [Heart Rate Variability in Psychology: A Review of HRV Indices and an Analysis Tutorial (2021](https://www.mdpi.com/1424-8220/21/12/3998)
 
 ### Biofeedback
 
