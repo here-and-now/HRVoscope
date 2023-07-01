@@ -330,9 +330,7 @@ class SensorClient(QObject):
         # 01 = ACC frameType,
         # sample0 = [45 FF E4 FF B5 03] x-axis(45 FF=-184 millig) y-axis(E4 FF=-28 millig) z-axis(B5 03=949 millig) ,
         # sample1, sample2,
-        print('acc data')
         if data[0] == b'\x02':
-            print('entering acc')
             timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9  # timestamp of the last sample
             frame_type = int.from_bytes(data[9], byteorder='big')
             resolution = (frame_type + 1) * 8  # 16 bit

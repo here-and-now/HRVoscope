@@ -26,15 +26,19 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal, QObject, QTimer, QMargins, QSize, QDateTime, QPointF
 from PySide6.QtGui import QIcon, QLinearGradient, QBrush, QGradient, QColor
 from PySide6.QtCharts import QChartView, QChart, QSplineSeries, QValueAxis, QAreaSeries, QLineSeries, QScatterSeries, QDateTimeAxis
+from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
+from PySide6.QtGui import QPainter
 
 from utils import BLUE, WHITE, GREEN, YELLOW, RED
 from pacer import Pacer
 from sensor import SensorClient
 # from sensor_mock import SensorClient
+from ui import Ui_MainWindow
 
-class View(QMainWindow):
+class View(QMainWindow, Ui_MainWindow):
     def __init__(self, model):
         super().__init__()
+        self.setupUi(self)
 
         self.setWindowTitle("HRVoscope")
 
@@ -50,66 +54,60 @@ class View(QMainWindow):
 
         self.HRV_METRICS_X_RANGE = [0, 200]
 
-        # # IBI
-        # self.ibi_widget = XYSeriesWidget()
-        # self.model.ibi_dataframe_update.connect(self.plot_ibi)
-        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
-        #
-        # # HR
-        # self.hr_widget = XYSeriesWidget()
-        # self.model.hr_dataframe_update.connect(self.plot_hr)
-        # # self.model.hr_dataframe_update.connect(self.printmock)
-        self.sensor.hr_update.connect(self.model.update_hr_dataframe)
-
-        # HRV
-        self.hrv_widget = XYSeriesWidget()
-        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
-
-        # ECG
+        # Create Widgets
+        self.ibi_widget = XYSeriesWidget()
+        self.hr_widget = XYSeriesWidget()
+        self.hrv_metrics_widget = XYSeriesWidget()
         self.ecg_widget = XYSeriesWidget()
-        self.model.ecg_dataframe_update.connect(self.plot_ecg)
-        self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
-        # ACC
         self.acc_widget = XYSeriesWidget()
+
+        # Connect Model Signals to Widget Slots
+        self.model.ibi_dataframe_update.connect(self.plot_ibi)
+        self.model.hr_dataframe_update.connect(self.plot_hr)
+        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
+        self.model.ecg_dataframe_update.connect(self.plot_ecg)
         self.model.acc_dataframe_update.connect(self.plot_acc)
+
+        # Connect Sensor Signals to Model Slots
+        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+        self.sensor.hr_update.connect(self.model.update_hr_dataframe)
+        self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
         self.sensor.acc_update.connect(self.model.update_acc_dataframe)
 
+        # HRV Scene Setup
+        self.hrv_metrics_scene = QGraphicsScene()  # Create a QGraphicsScene
+        self.hrv_metrics_scene.addWidget(self.hrv_metrics_widget)  # Add your custom widget to the scene
+        self.hrv_metrics_chart.setScene(self.hrv_metrics_scene)  # Set the scene to the QGraphicsView
 
-        # Layout stuff
-        self.layout = QHBoxLayout()
-        # self.layout.addWidget(self.ibi_widget)
-        # self.layout.addWidget(self.hr_widget)
-        # self.layout.addWidget(self.hrv_widget)
-        self.layout.addWidget(self.ecg_widget)
-        self.layout.addWidget(self.acc_widget)
-
-        central_widget = QWidget()
-        central_widget.setLayout(self.layout)
-
-        self.setCentralWidget(central_widget)
+        # ...
 
     def plot_ibi(self, df):
-        # self.ibi_widget.update_series(df['timestamp'], df['ibi'])
-        df = self.downsample_dataframe(df, 100)
-        index = [i for i in range(df.index.shape[0])]
-        self.ibi_widget.update_series(index, df['ibi'])
+        if not bool(self.ibi_widget.series_dict):
+            self.ibi_widget.add_series("IBI", x_range=[0, 100], y_range=[0, 200], line_color=BLUE, pen_width=2)
+        else:
+            df = self.downsample_dataframe(df, 100)
+            index = [i for i in range(df.index.shape[0])]
+            self.ibi_widget.update_series('IBI', index, df['ibi'])
+
     def plot_hr(self, df):
-        # self.hr_widget.update_series(df['timestamp'], df['hr'])
-        df = self.downsample_dataframe(df, 200)
-        index = [i for i in range(df.index.shape[0])]
-        self.hr_widget.update_series(index, df['hr'])
+        if not bool(self.hr_widget.series_dict):
+            self.hr_widget.add_series("HR", x_range=[0, 200], y_range=[0, 200], line_color=BLUE, pen_width=2)
+        else:
+            df = self.downsample_dataframe(df, 200)
+            index = [i for i in range(df.index.shape[0])]
+            self.hr_widget.update_series('HR', index, df['hr'])
 
     def plot_hrv(self, df):
-        if not bool(self.hrv_widget.series_dict):
-            self.hrv_widget.add_series("SDNN", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_SDNN_RANGE, line_color=RED, pen_width=2)
-            self.hrv_widget.add_series("RMSSD", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_RMSSD_RANGE, line_color=BLUE, pen_width=2)
+        if not bool(self.hrv_metrics_widget.series_dict):
+            self.hrv_metrics_widget.add_series("SDNN", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_SDNN_RANGE, line_color=RED, pen_width=2)
+            self.hrv_metrics_widget.add_series("RMSSD", x_range=self.HRV_METRICS_X_RANGE, y_range=self.HRV_RMSSD_RANGE, line_color=BLUE, pen_width=2)
         else:
             index = [i for i in range(df.index.shape[0])]
 
             df = df.dropna()
             df = self.downsample_dataframe(df, self.HRV_METRICS_X_RANGE[1])
-            self.hrv_widget.update_series('SDNN', index, df['SDNN'].values)
-            self.hrv_widget.update_series('RMSSD', index, df['RMSSD'].values)
+            self.hrv_metrics_widget.update_series('SDNN', index, df['SDNN'].values)
+            self.hrv_metrics_widget.update_series('RMSSD', index, df['RMSSD'].values)
 
     def plot_ecg(self, df):
         if not bool(self.ecg_widget.series_dict):
@@ -127,7 +125,7 @@ class View(QMainWindow):
             # reduce to last 1000 points
             df = df.iloc[-1000:]
             index = [i for i in range(df.index.shape[0])]
-            # df = self.downsample_dataframe(df, 1000)
+            df = self.downsample_dataframe(df, 1000)
             self.acc_widget.update_series('ACC', index, df['mag'].values)
     def downsample_dataframe(self, df, target_points):
         if len(df) <= target_points:
@@ -161,6 +159,11 @@ class XYSeriesWidget(QChartView):
         self.main_axis = None
 
         self.setChart(self.plot)
+        self.setInteractive(True)
+
+
+
+
 
     def add_series(self, series_name, x_values=None, y_values=None, x_range=[0, 200], y_range=[0, 200], line_color=BLUE,
                    pen_width=1):
