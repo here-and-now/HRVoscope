@@ -34,7 +34,6 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.HRV_METRICS_X_RANGE = [0, 200]
 
-
         # Connect Model Signals to Widget Slots
         self.model.ibi_dataframe_update.connect(self.plot_ibi)
         self.model.hr_dataframe_update.connect(self.plot_hr)
@@ -49,18 +48,16 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.sensor.acc_update.connect(self.model.update_acc_dataframe)
 
     def plot_ibi(self, df):
-
         df = self.downsample_dataframe(df, 100)
         x = df.index.values.astype(np.float64)
         y = df['ibi'].values
-        self.hrv_ibi_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
+        self.hrv_ibi_chart.plot(x, y, name='IBI', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hr(self, df):
-
         df = self.downsample_dataframe(df, 200)
         x = df.index.values.astype(np.float64)
         y = df['hr'].values
-        self.hr_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
+        self.hr_chart.plot(x, y, name='HR', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv(self, df):
         df = df.dropna()
@@ -68,8 +65,8 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         x = df.index.values.astype(np.float64)
         y_sdnn = df['SDNN'].values
         y_rmssd = df['RMSSD'].values
-        self.hrv_metrics_chart.plot(x, y_sdnn, pen=pg.mkPen(color=RED, width=2), name='SDNN')
-        self.hrv_metrics_chart.plot(x, y_rmssd, pen=pg.mkPen(color=BLUE, width=2), name='RMSSD')
+        self.hrv_metrics_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
+        self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_ecg(self, df):
         df = df.iloc[-1000:]
