@@ -69,6 +69,6 @@ class Model(QObject):
         )
 
         self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
-        print(self.hrv_dataframe)
+        # print(self.hrv_dataframe)
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
 
