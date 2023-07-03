@@ -54,7 +54,7 @@ class Model(QObject):
         self.acc_dataframe.index = pd.DatetimeIndex(self.acc_dataframe.index)
         self.acc_dataframe_update.emit(self.acc_dataframe)
 
-    def calculate_hrv_metrics(self):
+    def _calculate_hrv_metrics(self):
         ibi_values = self.ibi_dataframe['ibi'].values
         ibi_timestamps = self.ibi_dataframe.index
 
@@ -71,4 +71,49 @@ class Model(QObject):
         self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
         # print(self.hrv_dataframe)
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
+
+
+    def calculate_hrv_metrics(self, time_period=10):
+        df = self.ibi_dataframe
+
+        interval = f'{time_period}S'
+        start_time = df.index.min().floor(interval)
+
+        # Initialize variables to track the current interval
+        current_interval_start = start_time
+        current_interval_end = current_interval_start + pd.Timedelta(seconds=time_period)
+
+        # Create an empty list to store the calculated HRV metrics
+        hrv_metrics_list = []
+
+        # Group by custom time periods and calculate HRV metrics for each group
+        for timestamp, ibi_value in df['ibi'].items():
+            if timestamp >= current_interval_end:
+                # Calculate HRV metrics for the completed interval
+                group_df = df.loc[current_interval_start:current_interval_end]
+
+                if len(group_df) > 1:
+                    sdnn = np.std(group_df['ibi'].values)
+                    rmssd = np.sqrt(np.mean(np.square(np.diff(group_df['ibi'].values))))
+                    pnn50 = float(np.sum(np.abs(np.diff(group_df['ibi'].values)) > 50) / len(group_df['ibi'].values) * 100)
+                    pnn20 = float(np.sum(np.abs(np.diff(group_df['ibi'].values)) > 20) / len(group_df['ibi'].values) * 100)
+                else:
+                    sdnn = np.nan
+                    rmssd = np.nan
+                    pnn50 = np.nan
+                    pnn20 = np.nan
+
+                hrv_metrics = {'SDNN': sdnn, 'RMSSD': rmssd, 'pNN50': pnn50, 'pNN20': pnn20,
+                               'Timestamp': current_interval_end}
+                hrv_metrics_list.append(hrv_metrics)
+
+                # Update the current interval
+                current_interval_start = current_interval_end
+                current_interval_end = current_interval_start + pd.Timedelta(seconds=time_period)
+
+        # Create a DataFrame from the list of HRV metrics
+        self.hrv_dataframe = pd.DataFrame(hrv_metrics_list)
+
+        self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
+
 

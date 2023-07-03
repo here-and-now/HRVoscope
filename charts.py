@@ -16,10 +16,19 @@ class XYSeriesWidget(pg.GraphicsView):
         self.legend.setParentItem(self.plotItem.graphicsItem())
         self.legend.anchor((1, 1), (1, 1))  # Align to the top-right corner of the plot
 
+        self.dateTimeAxis = pg.DateAxisItem(orientation='bottom')  # Create DateAxisItem
+        self.plotItem.setAxisItems({'bottom': self.dateTimeAxis})
+
     def plot(self, x, y, name='', *args, **kwargs):
+        # check if x = datetime64[ns] and convert to unix timestamp
+        if x.dtype == 'datetime64[ns]':
+            x = x.astype('int64') // 10 ** 9
         if name in self.series_curves:
             self.series_curves[name].setData(x, y)
         else:
             curve = self.plotItem.plot(x, y, *args, **kwargs)
             self.series_curves[name] = curve
             self.legend.addItem(curve, name)
+
+
+

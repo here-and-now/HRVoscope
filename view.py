@@ -48,36 +48,37 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.sensor.acc_update.connect(self.model.update_acc_dataframe)
 
     def plot_ibi(self, df):
-        df = self.downsample_dataframe(df, 100)
-        x = df.index.values.astype(np.float64)
+        # df = self.downsample_dataframe(df, 100)
+        x = df.index.values
         y = df['ibi'].values
         self.hrv_ibi_chart.plot(x, y, name='IBI', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hr(self, df):
-        df = self.downsample_dataframe(df, 200)
-        x = df.index.values.astype(np.float64)
+        # df = self.downsample_dataframe(df, 200)
+        x = df.index.values
         y = df['hr'].values
         self.hr_chart.plot(x, y, name='HR', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv(self, df):
-        df = df.dropna()
-        df = self.downsample_dataframe(df, self.HRV_METRICS_X_RANGE[1])
-        x = df.index.values.astype(np.float64)
-        y_sdnn = df['SDNN'].values
-        y_rmssd = df['RMSSD'].values
-        self.hrv_metrics_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
-        self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
+        if 'SDNN' in df and 'RMSSD' in df:
+            df = df.dropna()
+            x = df.index.values
+            y_sdnn = df['SDNN'].values
+            y_rmssd = df['RMSSD'].values
+            self.hrv_metrics_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
+            self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
+
 
     def plot_ecg(self, df):
         df = df.iloc[-1000:]
-        x = df.index.values.astype(np.float64)
+        x = df.index
         y = df['ecg'].values
         self.ecg_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_acc(self, df):
         df = df.iloc[-1000:]
         df = self.downsample_dataframe(df, 1000)
-        x = df.index.values.astype(np.float64)
+        x = df.index.values
         y = df['mag'].values
         self.acc_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
 
