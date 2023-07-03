@@ -8,7 +8,7 @@ import PySide6.QtGui as QtGui
 import PySide6.QtWidgets as QtWidgets
 import pyqtgraph as pg
 
-from utils import BLUE, WHITE, GREEN, YELLOW, RED
+from utils import BLUE, WHITE, GREEN, YELLOW, RED, get_seconds_from_button_text
 from pacer import Pacer
 from sensor import SensorClient
 # from sensor_mock import SensorClient
@@ -36,12 +36,14 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Connect Model Signals to Widget Slots
         self.model.ibi_dataframe_update.connect(self.plot_ibi)
-        self.model.hr_dataframe_update.connect(self.plot_hr)
-        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv_metrics)
-
         self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
 
-        # self.model.ecg_dataframe_update.connect(self.plot_ecg)
+        self.model.hr_dataframe_update.connect(self.plot_hr)
+        # self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv_metrics)
+
+
+
+        self.model.ecg_dataframe_update.connect(self.plot_ecg)
         # self.model.acc_dataframe_update.connect(self.plot_acc)
 
         # Connect Sensor Signals to Model Slots
@@ -54,15 +56,17 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def plot_ibi(self, df):
         # df = self.downsample_dataframe(df, 100)
+        tw = self.time_window_for_plot()
         x = df.index.values
         y = df['ibi'].values
-        self.hrv_ibi_chart.plot(x, y, name='IBI', pen=pg.mkPen(color=BLUE, width=2))
+        self.hrv_ibi_chart.plot(x, y, name='IBI', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hr(self, df):
         # df = self.downsample_dataframe(df, 200)
+        tw = self.time_window_for_plot()
         x = df.index.values
         y = df['hr'].values
-        self.hr_chart.plot(x, y, name='HR', pen=pg.mkPen(color=BLUE, width=2))
+        self.hr_chart.plot(x, y, name='HR', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv(self, df):
         if 'SDNN' in df and 'RMSSD' in df:
@@ -74,20 +78,22 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
             self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv_metrics(self, df):
-        timeframe = self.hrv_metrics_time_button_group.checkedButton().text()
-        period = int(timeframe[:-1])
-        period_unit = timeframe[-1]
+        time_metrics_window = get_seconds_from_button_text(self.hrv_metrics_time_button_group.checkedButton())
 
-        df = self.model.calculate_hrv_metrics(time_period=period, time_unit=period_unit)
+        df = self.model.calculate_hrv_metrics(time_metrics_window=time_metrics_window)
+
+        tw = self.time_window_for_plot()
 
         if 'SDNN' in df and 'RMSSD' in df:
             df = df.dropna()
             x = df.index.values
             y_sdnn = df['SDNN'].values
             y_rmssd = df['RMSSD'].values
-            self.hrv_metrics_by_time_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
-            self.hrv_metrics_by_time_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
+            self.hrv_metrics_by_time_chart.plot(x, y_sdnn, name='SDNN', time_window=tw, pen=pg.mkPen(color=RED, width=2))
+            self.hrv_metrics_by_time_chart.plot(x, y_rmssd, name='RMSSD', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
+    def time_window_for_plot(self):
+        return get_seconds_from_button_text(self.plot_time_window_button_group.checkedButton())
 
     def plot_ecg(self, df):
         df = df.iloc[-1000:]

@@ -19,7 +19,15 @@ def get_sensor_address(sensor):
     elif system == "Darwin":
         return sensor.deviceUuid().toString().strip("{}")
 
+def get_seconds_from_button_text(button):
+    """Return seconds from button text."""
+    text = button.text()
+    period_number = int(text[:-1])
+    period_unit = text[-1]
 
+    seconds = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == period_unit}[period_unit] * period_number
+
+    return seconds
 def get_sensor_remote_address(sensor):
     """Return MAC (Windows, Linux) or UUID (macOS)."""
     system = platform.system()

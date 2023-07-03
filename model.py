@@ -73,17 +73,16 @@ class Model(QObject):
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
 
 
-    def calculate_hrv_metrics(self, time_period=10, time_unit='s'):
+    def calculate_hrv_metrics(self, time_metrics_window=10):
         df = self.ibi_dataframe
 
-        time_period = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == time_unit}[time_unit] * time_period
-        interval = f'{time_period}s'
+        interval = f'{time_metrics_window}s'
 
         start_time = df.index.min().floor(interval)
 
         # Initialize variables to track the current interval
         current_interval_start = start_time
-        current_interval_end = current_interval_start + pd.Timedelta(seconds=time_period)
+        current_interval_end = current_interval_start + pd.Timedelta(seconds=time_metrics_window)
 
         # Create an empty list to store the calculated HRV metrics
         hrv_metrics_list = []
@@ -111,7 +110,7 @@ class Model(QObject):
 
                 # Update the current interval
                 current_interval_start = current_interval_end
-                current_interval_end = current_interval_start + pd.Timedelta(seconds=time_period)
+                current_interval_end = current_interval_start + pd.Timedelta(seconds=time_metrics_window)
 
         # Create a DataFrame from the list of HRV metrics
         hrv_dataframe = pd.DataFrame(hrv_metrics_list)
