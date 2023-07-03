@@ -66,6 +66,32 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
+        <widget class="QPushButton" name="hrv_metrics_time_1s_button">
+         <property name="text">
+          <string>1s</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">hrv_metrics_time_button_group</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="hrv_metrics_time_5s_button">
+         <property name="text">
+          <string>5s</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">hrv_metrics_time_button_group</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="hrv_metrics_time_10s_button">
          <property name="text">
           <string>10s</string>
@@ -73,8 +99,11 @@
          <property name="checkable">
           <bool>true</bool>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
          <attribute name="buttonGroup">
-          <string notr="true">buttonGroup</string>
+          <string notr="true">hrv_metrics_time_button_group</string>
          </attribute>
         </widget>
        </item>
@@ -87,20 +116,20 @@
           <bool>true</bool>
          </property>
          <attribute name="buttonGroup">
-          <string notr="true">buttonGroup</string>
+          <string notr="true">hrv_metrics_time_button_group</string>
          </attribute>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="hrv_metrics_time_60s_button">
+        <widget class="QPushButton" name="hrv_metrics_time_1m_button">
          <property name="text">
-          <string>60s</string>
+          <string>1m</string>
          </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
          <attribute name="buttonGroup">
-          <string notr="true">buttonGroup</string>
+          <string notr="true">hrv_metrics_time_button_group</string>
          </attribute>
         </widget>
        </item>
@@ -147,6 +176,6 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
+  <buttongroup name="hrv_metrics_time_button_group"/>
  </buttongroups>
 </ui>

@@ -37,13 +37,18 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # Connect Model Signals to Widget Slots
         self.model.ibi_dataframe_update.connect(self.plot_ibi)
         self.model.hr_dataframe_update.connect(self.plot_hr)
-        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv)
+        self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv_metrics)
+
+        self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
+
         # self.model.ecg_dataframe_update.connect(self.plot_ecg)
         # self.model.acc_dataframe_update.connect(self.plot_acc)
 
         # Connect Sensor Signals to Model Slots
         self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
+
+
         # self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
         # self.sensor.acc_update.connect(self.model.update_acc_dataframe)
 
@@ -67,6 +72,21 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
             y_rmssd = df['RMSSD'].values
             self.hrv_metrics_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
             self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
+
+    def plot_hrv_metrics(self, df):
+        timeframe = self.hrv_metrics_time_button_group.checkedButton().text()
+        period = int(timeframe[:-1])
+        period_unit = timeframe[-1]
+
+        df = self.model.calculate_hrv_metrics(time_period=period, time_unit=period_unit)
+
+        if 'SDNN' in df and 'RMSSD' in df:
+            df = df.dropna()
+            x = df.index.values
+            y_sdnn = df['SDNN'].values
+            y_rmssd = df['RMSSD'].values
+            self.hrv_metrics_by_time_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
+            self.hrv_metrics_by_time_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
 
 
     def plot_ecg(self, df):

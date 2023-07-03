@@ -70,28 +70,43 @@ class Ui_MainWindow(object):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.hrv_metrics_time_1s_button = QPushButton(self.verticalLayoutWidget)
+        self.hrv_metrics_time_button_group = QButtonGroup(MainWindow)
+        self.hrv_metrics_time_button_group.setObjectName(u"hrv_metrics_time_button_group")
+        self.hrv_metrics_time_button_group.addButton(self.hrv_metrics_time_1s_button)
+        self.hrv_metrics_time_1s_button.setObjectName(u"hrv_metrics_time_1s_button")
+        self.hrv_metrics_time_1s_button.setCheckable(True)
+
+        self.horizontalLayout_3.addWidget(self.hrv_metrics_time_1s_button)
+
+        self.hrv_metrics_time_5s_button = QPushButton(self.verticalLayoutWidget)
+        self.hrv_metrics_time_button_group.addButton(self.hrv_metrics_time_5s_button)
+        self.hrv_metrics_time_5s_button.setObjectName(u"hrv_metrics_time_5s_button")
+        self.hrv_metrics_time_5s_button.setCheckable(True)
+
+        self.horizontalLayout_3.addWidget(self.hrv_metrics_time_5s_button)
+
         self.hrv_metrics_time_10s_button = QPushButton(self.verticalLayoutWidget)
-        self.buttonGroup = QButtonGroup(MainWindow)
-        self.buttonGroup.setObjectName(u"buttonGroup")
-        self.buttonGroup.addButton(self.hrv_metrics_time_10s_button)
+        self.hrv_metrics_time_button_group.addButton(self.hrv_metrics_time_10s_button)
         self.hrv_metrics_time_10s_button.setObjectName(u"hrv_metrics_time_10s_button")
         self.hrv_metrics_time_10s_button.setCheckable(True)
+        self.hrv_metrics_time_10s_button.setChecked(True)
 
         self.horizontalLayout_3.addWidget(self.hrv_metrics_time_10s_button)
 
         self.hrv_metrics_time_30s_button = QPushButton(self.verticalLayoutWidget)
-        self.buttonGroup.addButton(self.hrv_metrics_time_30s_button)
+        self.hrv_metrics_time_button_group.addButton(self.hrv_metrics_time_30s_button)
         self.hrv_metrics_time_30s_button.setObjectName(u"hrv_metrics_time_30s_button")
         self.hrv_metrics_time_30s_button.setCheckable(True)
 
         self.horizontalLayout_3.addWidget(self.hrv_metrics_time_30s_button)
 
-        self.hrv_metrics_time_60s_button = QPushButton(self.verticalLayoutWidget)
-        self.buttonGroup.addButton(self.hrv_metrics_time_60s_button)
-        self.hrv_metrics_time_60s_button.setObjectName(u"hrv_metrics_time_60s_button")
-        self.hrv_metrics_time_60s_button.setCheckable(True)
+        self.hrv_metrics_time_1m_button = QPushButton(self.verticalLayoutWidget)
+        self.hrv_metrics_time_button_group.addButton(self.hrv_metrics_time_1m_button)
+        self.hrv_metrics_time_1m_button.setObjectName(u"hrv_metrics_time_1m_button")
+        self.hrv_metrics_time_1m_button.setCheckable(True)
 
-        self.horizontalLayout_3.addWidget(self.hrv_metrics_time_60s_button)
+        self.horizontalLayout_3.addWidget(self.hrv_metrics_time_1m_button)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -121,8 +136,10 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        self.hrv_metrics_time_1s_button.setText(QCoreApplication.translate("MainWindow", u"1s", None))
+        self.hrv_metrics_time_5s_button.setText(QCoreApplication.translate("MainWindow", u"5s", None))
         self.hrv_metrics_time_10s_button.setText(QCoreApplication.translate("MainWindow", u"10s", None))
         self.hrv_metrics_time_30s_button.setText(QCoreApplication.translate("MainWindow", u"30s", None))
-        self.hrv_metrics_time_60s_button.setText(QCoreApplication.translate("MainWindow", u"60s", None))
+        self.hrv_metrics_time_1m_button.setText(QCoreApplication.translate("MainWindow", u"1m", None))
     # retranslateUi
 

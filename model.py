@@ -26,7 +26,7 @@ class Model(QObject):
         self.ibi_dataframe = pd.concat([self.ibi_dataframe, new_row])
         self.ibi_dataframe.index = pd.DatetimeIndex(self.ibi_dataframe.index)
         self.ibi_dataframe_update.emit(self.ibi_dataframe)
-        self.calculate_hrv_metrics()
+        # self.calculate_hrv_metrics()
 
     @Slot(dict)
     def update_hr_dataframe(self, value):
@@ -73,10 +73,12 @@ class Model(QObject):
         self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
 
 
-    def calculate_hrv_metrics(self, time_period=10):
+    def calculate_hrv_metrics(self, time_period=10, time_unit='s'):
         df = self.ibi_dataframe
 
-        interval = f'{time_period}S'
+        time_period = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == time_unit}[time_unit] * time_period
+        interval = f'{time_period}s'
+
         start_time = df.index.min().floor(interval)
 
         # Initialize variables to track the current interval
@@ -104,7 +106,7 @@ class Model(QObject):
                     pnn20 = np.nan
 
                 hrv_metrics = {'SDNN': sdnn, 'RMSSD': rmssd, 'pNN50': pnn50, 'pNN20': pnn20,
-                               'Timestamp': current_interval_end}
+                               'timestamp': current_interval_end}
                 hrv_metrics_list.append(hrv_metrics)
 
                 # Update the current interval
@@ -112,8 +114,11 @@ class Model(QObject):
                 current_interval_end = current_interval_start + pd.Timedelta(seconds=time_period)
 
         # Create a DataFrame from the list of HRV metrics
-        self.hrv_dataframe = pd.DataFrame(hrv_metrics_list)
+        hrv_dataframe = pd.DataFrame(hrv_metrics_list)
+        hrv_dataframe.set_index('timestamp', inplace=True)
 
-        self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
+        return hrv_dataframe
+
+
 
 
