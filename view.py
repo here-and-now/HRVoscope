@@ -14,45 +14,32 @@ from sensor import SensorClient
 # from sensor_mock import SensorClient
 from ui import Ui_MainWindow
 
-
 class View(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, model):
         super().__init__()
         self.setupUi(self)
-
         self.setWindowTitle("HRVoscope")
 
         self.model = model
-
         self.sensor = SensorClient()
         self.sensor.connect_client(self.sensor)
 
-        self.HRV_RMSSD_RANGE = [0, 200]
-        self.HRV_SDNN_RANGE = [0, 200]
-        self.HRV_pNN20_RANGE = [0, 100]
-        self.HRV_pNN50_RANGE = [0, 100]
-
-        self.HRV_METRICS_X_RANGE = [0, 200]
-
-        # Connect Model Signals to Widget Slots
-        self.model.ibi_dataframe_update.connect(self.plot_ibi)
-        self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
-
-        self.model.hr_dataframe_update.connect(self.plot_hr)
-        # self.model.hrv_metrics_dataframe_update.connect(self.plot_hrv_metrics)
-
-
-
-        self.model.ecg_dataframe_update.connect(self.plot_ecg)
-        # self.model.acc_dataframe_update.connect(self.plot_acc)
-
-        # Connect Sensor Signals to Model Slots
-        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+        # Manage and connect dataframe updates
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
-
-
+        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
         # self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
         # self.sensor.acc_update.connect(self.model.update_acc_dataframe)
+
+        # HR
+        self.model.hr_dataframe_update.connect(self.plot_hr)
+        # IBI
+        self.model.ibi_dataframe_update.connect(self.plot_ibi)
+        # HRV
+        self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
+        # ECG
+        # self.model.ecg_dataframe_update.connect(self.plot_ecg)
+        # # ACC
+        # self.model.acc_dataframe_update.connect(self.plot_acc)
 
     def plot_ibi(self, df):
         # df = self.downsample_dataframe(df, 100)
@@ -68,20 +55,9 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         y = df['hr'].values
         self.hr_chart.plot(x, y, name='HR', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
-    def plot_hrv(self, df):
-        if 'SDNN' in df and 'RMSSD' in df:
-            df = df.dropna()
-            x = df.index.values
-            y_sdnn = df['SDNN'].values
-            y_rmssd = df['RMSSD'].values
-            self.hrv_metrics_chart.plot(x, y_sdnn, name='SDNN', pen=pg.mkPen(color=RED, width=2))
-            self.hrv_metrics_chart.plot(x, y_rmssd, name='RMSSD', pen=pg.mkPen(color=BLUE, width=2))
-
     def plot_hrv_metrics(self, df):
         time_metrics_window = get_seconds_from_button_text(self.hrv_metrics_time_button_group.checkedButton())
-
         df = self.model.calculate_hrv_metrics(time_metrics_window=time_metrics_window)
-
         tw = self.time_window_for_plot()
 
         if 'SDNN' in df and 'RMSSD' in df:

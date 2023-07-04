@@ -20,14 +20,15 @@ class XYSeriesWidget(pg.GraphicsView):
         self.plotItem.setAxisItems({'bottom': self.dateTimeAxis})
 
     def plot(self, x, y, name='', time_window=None, *args, **kwargs):
-        # check if x = datetime64[ns] and convert to unix timestamp
         if x.dtype == 'datetime64[ns]':
             x = x.astype('int64') // 10 ** 9
         if name in self.series_curves:
             self.series_curves[name].setData(x, y)
-            print(x[-1])
             if time_window is not None:
                 self.plotItem.setXRange(x[-1] - time_window, x[-1])
+            elif time_window is None:
+                # set auto range
+                self.plotItem.enableAutoRange(axis='x')
         else:
             curve = self.plotItem.plot(x, y, *args, **kwargs)
             self.series_curves[name] = curve

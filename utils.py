@@ -22,8 +22,11 @@ def get_sensor_address(sensor):
 def get_seconds_from_button_text(button):
     """Return seconds from button text."""
     text = button.text()
+    if text == 'All':
+        return None
     period_number = int(text[:-1])
     period_unit = text[-1]
+
 
     seconds = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == period_unit}[period_unit] * period_number
 
