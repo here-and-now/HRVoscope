@@ -270,6 +270,8 @@
      <string>Settings</string>
     </property>
     <addaction name="actionReset_data"/>
+    <addaction name="actionPause_plot"/>
+    <addaction name="actionResume_plot"/>
    </widget>
    <addaction name="menuSettings"/>
   </widget>
@@ -277,6 +279,16 @@
   <action name="actionReset_data">
    <property name="text">
     <string>Reset data</string>
+   </property>
+  </action>
+  <action name="actionPause_plot">
+   <property name="text">
+    <string>Pause plot</string>
+   </property>
+  </action>
+  <action name="actionResume_plot">
+   <property name="text">
+    <string>Resume plot</string>
    </property>
   </action>
  </widget>

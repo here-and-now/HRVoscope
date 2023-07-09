@@ -30,6 +30,10 @@ class Ui_MainWindow(object):
         MainWindow.resize(1226, 919)
         self.actionReset_data = QAction(MainWindow)
         self.actionReset_data.setObjectName(u"actionReset_data")
+        self.actionPause_plot = QAction(MainWindow)
+        self.actionPause_plot.setObjectName(u"actionPause_plot")
+        self.actionResume_plot = QAction(MainWindow)
+        self.actionResume_plot.setObjectName(u"actionResume_plot")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.horizontalLayout = QHBoxLayout(self.centralwidget)
@@ -210,6 +214,8 @@ class Ui_MainWindow(object):
 
         self.menubar.addAction(self.menuSettings.menuAction())
         self.menuSettings.addAction(self.actionReset_data)
+        self.menuSettings.addAction(self.actionPause_plot)
+        self.menuSettings.addAction(self.actionResume_plot)
 
         self.retranslateUi(MainWindow)
 
@@ -219,6 +225,8 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.actionReset_data.setText(QCoreApplication.translate("MainWindow", u"Reset data", None))
+        self.actionPause_plot.setText(QCoreApplication.translate("MainWindow", u"Pause plot", None))
+        self.actionResume_plot.setText(QCoreApplication.translate("MainWindow", u"Resume plot", None))
         self.hrv_metrics_label.setText(QCoreApplication.translate("MainWindow", u"HRV metrics", None))
         self.plot_window_button_30s.setText(QCoreApplication.translate("MainWindow", u"30s", None))
         self.plot_window_button_1m.setText(QCoreApplication.translate("MainWindow", u"1m", None))

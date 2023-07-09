@@ -39,15 +39,15 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.model.acc_dataframe_update.connect(self.plot_acc)
 
         self.actionReset_data.triggered.connect(self.reset_data)
+        self.actionPause_plot.triggered.connect(self.pause_plotting)
+        self.actionResume_plot.triggered.connect(self.resume_plotting)
 
+        self.plot_paused = False
 
-    def reset_data(self):
-        self.model.hr_dataframe = pd.DataFrame()
-        self.model.ibi_dataframe = pd.DataFrame()
-        self.model.hrv_dataframe = pd.DataFrame()
-        self.model.ecg_dataframe = pd.DataFrame()
-        self.model.acc_dataframe = pd.DataFrame()
     def plot_ibi(self, df):
+        if self.plot_paused:
+            return
+
         # df = self.downsample_dataframe(df, 100)
         tw = self.time_window_for_plot()
         x = df.index.values
@@ -55,6 +55,9 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         self.hrv_ibi_chart.plot(x, y, name='IBI', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hr(self, df):
+        if self.plot_paused:
+            return
+
         # df = self.downsample_dataframe(df, 200)
         tw = self.time_window_for_plot()
         x = df.index.values
@@ -62,6 +65,9 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         self.hr_chart.plot(x, y, name='HR', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv_metrics(self, df):
+        if self.plot_paused:
+            return
+
         time_metrics_window = get_ms_from_button_text(self.hrv_metrics_time_button_group.checkedButton())
         df = self.model.calculate_hrv_metrics(time_metrics_window=time_metrics_window)
         tw = self.time_window_for_plot()
@@ -78,11 +84,17 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         return get_ms_from_button_text(self.plot_time_window_button_group.checkedButton())
 
     def plot_ecg(self, df):
+        if self.plot_paused:
+            return
+
         x = df.index.values
         y = df['ecg'].values
         self.ecg_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_acc(self, df):
+        if self.plot_paused:
+            return
+
         df = df.iloc[-1000:]
         df = self.downsample_dataframe(df, 1000)
         x = df.index.values
@@ -106,3 +118,22 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         df_downsampled.index = target_index
 
         return df_downsampled
+
+    def reset_data(self):
+        self.model.hr_dataframe = pd.DataFrame()
+        self.model.ibi_dataframe = pd.DataFrame()
+        self.model.hrv_dataframe = pd.DataFrame()
+        self.model.ecg_dataframe = pd.DataFrame()
+        self.model.acc_dataframe = pd.DataFrame()
+
+        self.hr_chart.clear()
+        self.hrv_ibi_chart.clear()
+        self.ecg_chart.clear()
+        self.acc_chart.clear()
+        self.hrv_metrics_by_time_chart.clear()
+
+    def pause_plotting(self):
+        self.plot_paused = True
+
+    def resume_plotting(self):
+        self.plot_paused = False
