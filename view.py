@@ -27,7 +27,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # Manage and connect dataframe updates
         self.sensor.hr_update.connect(self.model.update_hr_dataframe)
         self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
-        # self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
+        self.sensor.ecg_update.connect(self.model.update_ecg_dataframe)
         # self.sensor.acc_update.connect(self.model.update_acc_dataframe)
 
         # HR
@@ -37,7 +37,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # HRV
         self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
         # ECG
-        # self.model.ecg_dataframe_update.connect(self.plot_ecg)
+        self.model.ecg_dataframe_update.connect(self.plot_ecg)
         # # ACC
         # self.model.acc_dataframe_update.connect(self.plot_acc)
 
@@ -72,8 +72,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         return get_seconds_from_button_text(self.plot_time_window_button_group.checkedButton())
 
     def plot_ecg(self, df):
-        df = df.iloc[-1000:]
-        x = df.index
+        x = df.index.values
         y = df['ecg'].values
         self.ecg_chart.plot(x, y, pen=pg.mkPen(color=BLUE, width=2))
 

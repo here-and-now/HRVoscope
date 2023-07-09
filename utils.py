@@ -1,8 +1,10 @@
+import datetime
 import re
 from pathlib import Path
 import platform
 
 from PySide6.QtGui import QColor
+import pandas as pd
 
 BLUE = QColor(135, 206, 250)
 WHITE = QColor(255, 255, 255)
@@ -31,6 +33,14 @@ def get_seconds_from_button_text(button):
     seconds = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == period_unit}[period_unit] * period_number
 
     return seconds
+
+def transform_polar_timestamp_to_unix_timestamp(timestamp):
+    epoch_start = datetime.datetime(2000, 1, 1)
+
+    print('epch start', epoch_start)
+    ts = pd.to_datetime(timestamp, unit='ns') + pd.to_datetime(epoch_start)
+    print('ts', ts)
+
 def get_sensor_remote_address(sensor):
     """Return MAC (Windows, Linux) or UUID (macOS)."""
     system = platform.system()

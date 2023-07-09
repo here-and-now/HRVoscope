@@ -235,14 +235,19 @@ class SensorClient(QObject):
         # 00 = ECG; EA 1C AC CC 99 43 52 08 = last sample timestamp in nanoseconds; 00 = ECG frameType, sample0 = [68 00 00] microVolts(104) , sample1, sample2, ....
 
         if data[0] == b'\x00':
-            timestamp = convert_to_unsigned_long(data, 1, 8) / 1.0e9
+            timestamp = convert_to_unsigned_long(data, 1, 8)
             step = 3
-            time_step = 1.0 / self.ECG_SAMPLING_FREQ
+            time_step = int(1.0 / self.ECG_SAMPLING_FREQ * 1e9)
             samples = data[10:]
             n_samples = math.floor(len(samples) / step)
             offset = 0
             sample_timestamp = timestamp - (n_samples - 1) * time_step
             while offset < len(samples):
+                # print(f"ECG timestamp: {timestamp}"
+                #       f"ECG time step: {time_step}"
+                #       f"ECG sample timestamp: {sample_timestamp}"
+                #       f"ECG sample: {samples[offset:offset + step]}"
+                #       f"ECG sample value: {convert_array_to_signed_int(samples, offset, step)}")
                 ecg = convert_array_to_signed_int(samples, offset, step)
                 offset += step
                 self.ecg_update.emit({'timestamp': sample_timestamp, 'ecg': ecg})

@@ -2,7 +2,9 @@ from PySide6.QtCore import QObject, Signal, Slot
 from collections import namedtuple
 import numpy as np
 import pandas as pd
-from datetime import datetime
+
+import datetime
+from utils import transform_polar_timestamp_to_unix_timestamp
 class Model(QObject):
 
     ibi_dataframe_update = Signal(object)
@@ -30,6 +32,7 @@ class Model(QObject):
 
     @Slot(dict)
     def update_hr_dataframe(self, value):
+
         timestamp = pd.to_datetime(value['timestamp'], unit='ms')
         new_row = pd.DataFrame({'hr': [value['hr']]}, index=[timestamp])
         self.hr_dataframe = pd.concat([self.hr_dataframe, new_row])
@@ -38,8 +41,17 @@ class Model(QObject):
 
     @Slot(dict)
     def update_ecg_dataframe(self, value):
-        timestamp = pd.to_datetime(value['timestamp'], unit='ns')
-        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp])
+        timestamp_ns = value['timestamp']
+        # TODO  fix timestamp offset
+        # print(f'ecg timestamp: {timestamp_ns}')
+        # epoch_start = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        #
+        # timestamp_datetime = epoch_start + datetime.timedelta(seconds=timestamp_ns // 1e9,
+        #                                                       microseconds=(timestamp_ns % 1e9) / 1e3)
+
+        timestamp_datetime = pd.to_datetime(timestamp_ns, unit='ns')
+
+        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp_datetime])
         self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
         self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
         self.ecg_dataframe_update.emit(self.ecg_dataframe)
@@ -53,25 +65,6 @@ class Model(QObject):
         self.acc_dataframe = pd.concat([self.acc_dataframe, new_row])
         self.acc_dataframe.index = pd.DatetimeIndex(self.acc_dataframe.index)
         self.acc_dataframe_update.emit(self.acc_dataframe)
-
-    def _calculate_hrv_metrics(self):
-        ibi_values = self.ibi_dataframe['ibi'].values
-        ibi_timestamps = self.ibi_dataframe.index
-
-        sdnn = np.std(ibi_values)
-        rmssd = np.sqrt(np.mean(np.square(np.diff(ibi_values))))
-        pnn50 = float(np.sum(np.abs(np.diff(ibi_values)) > 50) / len(ibi_values) * 100)
-        pnn20 = float(np.sum(np.abs(np.diff(ibi_values)) > 20) / len(ibi_values) * 100)
-
-        hrv_metrics = pd.DataFrame(
-            {'SDNN': [sdnn], 'RMSSD': [rmssd], 'pNN50': [pnn50], 'pNN20': [pnn20], 'IBI': [ibi_values[-1]]},
-            index=[ibi_timestamps[-1]]  # Set the index as the timestamp from the latest IBI value
-        )
-
-        self.hrv_dataframe = pd.concat([self.hrv_dataframe, hrv_metrics])  # Concatenate with the existing HRV dataframe
-        # print(self.hrv_dataframe)
-        self.hrv_metrics_dataframe_update.emit(self.hrv_dataframe)
-
 
     def calculate_hrv_metrics(self, time_metrics_window=10):
         df = self.ibi_dataframe
@@ -114,7 +107,10 @@ class Model(QObject):
 
         # Create a DataFrame from the list of HRV metrics
         hrv_dataframe = pd.DataFrame(hrv_metrics_list)
-        hrv_dataframe.set_index('timestamp', inplace=True)
+        try:
+            hrv_dataframe.set_index('timestamp', inplace=True)
+        except KeyError:
+            pass
 
         return hrv_dataframe
 
