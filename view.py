@@ -8,7 +8,7 @@ import PySide6.QtGui as QtGui
 import PySide6.QtWidgets as QtWidgets
 import pyqtgraph as pg
 
-from utils import BLUE, WHITE, GREEN, YELLOW, RED, get_seconds_from_button_text
+from utils import BLUE, WHITE, GREEN, YELLOW, RED, get_ms_from_button_text
 from pacer import Pacer
 from sensor import SensorClient
 # from sensor_mock import SensorClient
@@ -56,7 +56,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         self.hr_chart.plot(x, y, name='HR', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def plot_hrv_metrics(self, df):
-        time_metrics_window = get_seconds_from_button_text(self.hrv_metrics_time_button_group.checkedButton())
+        time_metrics_window = get_ms_from_button_text(self.hrv_metrics_time_button_group.checkedButton())
         df = self.model.calculate_hrv_metrics(time_metrics_window=time_metrics_window)
         tw = self.time_window_for_plot()
 
@@ -69,7 +69,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
             self.hrv_metrics_by_time_chart.plot(x, y_rmssd, name='RMSSD', time_window=tw, pen=pg.mkPen(color=BLUE, width=2))
 
     def time_window_for_plot(self):
-        return get_seconds_from_button_text(self.plot_time_window_button_group.checkedButton())
+        return get_ms_from_button_text(self.plot_time_window_button_group.checkedButton())
 
     def plot_ecg(self, df):
         x = df.index.values

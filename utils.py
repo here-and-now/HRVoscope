@@ -21,7 +21,7 @@ def get_sensor_address(sensor):
     elif system == "Darwin":
         return sensor.deviceUuid().toString().strip("{}")
 
-def get_seconds_from_button_text(button):
+def get_ms_from_button_text(button):
     """Return seconds from button text."""
     text = button.text()
     if text == 'All':
@@ -31,8 +31,9 @@ def get_seconds_from_button_text(button):
 
 
     seconds = {k: v for k, v in {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}.items() if k == period_unit}[period_unit] * period_number
+    milliseconds = seconds * 1000
+    return milliseconds
 
-    return seconds
 
 def transform_polar_timestamp_to_unix_timestamp(timestamp):
     epoch_start = datetime.datetime(2000, 1, 1)

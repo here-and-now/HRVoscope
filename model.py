@@ -69,6 +69,7 @@ class Model(QObject):
     def calculate_hrv_metrics(self, time_metrics_window=10):
         df = self.ibi_dataframe
 
+        time_metrics_window = time_metrics_window // 1000
         interval = f'{time_metrics_window}s'
 
         start_time = df.index.min().floor(interval)
