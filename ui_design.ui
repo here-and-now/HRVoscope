@@ -265,8 +265,20 @@
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionReset_data"/>
+   </widget>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionReset_data">
+   <property name="text">
+    <string>Reset data</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

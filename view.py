@@ -1,18 +1,15 @@
-from datetime import datetime
+import numpy as np
+import PySide6.QtWidgets as QtWidgets
 import numpy as np
 import pandas as pd
-from scipy import signal
-from scipy.interpolate import interp1d
-import PySide6.QtCore as QtCore
-import PySide6.QtGui as QtGui
-import PySide6.QtWidgets as QtWidgets
 import pyqtgraph as pg
+from scipy.interpolate import interp1d
 
-from utils import BLUE, WHITE, GREEN, YELLOW, RED, get_ms_from_button_text
-from pacer import Pacer
 from sensor import SensorClient
 # from sensor_mock import SensorClient
 from ui import Ui_MainWindow
+from utils import BLUE, RED, get_ms_from_button_text
+
 
 class View(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, model):
@@ -41,6 +38,15 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         # # ACC
         # self.model.acc_dataframe_update.connect(self.plot_acc)
 
+        self.actionReset_data.triggered.connect(self.reset_data)
+
+
+    def reset_data(self):
+        self.model.hr_dataframe = pd.DataFrame()
+        self.model.ibi_dataframe = pd.DataFrame()
+        self.model.hrv_dataframe = pd.DataFrame()
+        self.model.ecg_dataframe = pd.DataFrame()
+        self.model.acc_dataframe = pd.DataFrame()
     def plot_ibi(self, df):
         # df = self.downsample_dataframe(df, 100)
         tw = self.time_window_for_plot()

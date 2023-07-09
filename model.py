@@ -55,6 +55,7 @@ class Model(QObject):
         self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
         self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
         self.ecg_dataframe_update.emit(self.ecg_dataframe)
+        print(self.ecg_dataframe.info(memory_usage='deep'))
 
     @Slot(dict)
     def update_acc_dataframe(self, value):
