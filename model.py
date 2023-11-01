@@ -3,6 +3,7 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
 import datetime
 from utils import transform_polar_timestamp_to_unix_timestamp
 class Model(QObject):
@@ -40,22 +41,80 @@ class Model(QObject):
         self.hr_dataframe_update.emit(self.hr_dataframe)
 
     @Slot(dict)
-    def update_ecg_dataframe(self, value):
+    def _update_ecg_dataframe(self, value):
+        # sensor timestamp is in nanoseconds from polar epoch
         timestamp_ns = value['timestamp']
-        # TODO  fix timestamp offset
-        # print(f'ecg timestamp: {timestamp_ns}')
-        # epoch_start = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        #
-        # timestamp_datetime = epoch_start + datetime.timedelta(seconds=timestamp_ns // 1e9,
-        #                                                       microseconds=(timestamp_ns % 1e9) / 1e3)
 
-        timestamp_datetime = pd.to_datetime(timestamp_ns, unit='ns')
+        # Offset between Unix epoch and Polar epoch in nanoseconds
+        nanosecond_offset = 946684800000000000 # aka 2000-01-01 00:00:00 UTC
+
+        # Convert to unix timestamp in milliseconds
+        timestamp_ms = (timestamp_ns + nanosecond_offset) / 1000000
+        # Convert to datetime
+        timestamp_datetime = pd.to_datetime(timestamp_ms, unit='ms')
+
+        print(timestamp_datetime)
+        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp_datetime])
+        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
+        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
+        self.ecg_dataframe_update.emit(self.ecg_dataframe)
+        # print(self.ecg_dataframe)
+
+    @Slot(dict)
+    def _update_ecg_dataframe(self, value):
+        # Sensor timestamp is in nanoseconds since epoch 2000-01-01T00:00:00Z
+        timestamp_ns = value['timestamp']
+        nanosecond_offset = 946684800000000000 # aka 2000-01-01 00:00:00 UTC
+        # Convert to datetime using the correct epoch
+        timestamp_datetime = timestamp_ns + nanosecond_offset
+
+        # calculate offset beetween timestamp and current time
+        current_time = int(datetime.datetime.now().timestamp() * 1000000000)
+
+        offset = current_time - timestamp_ns
+
+        print(f'offset: {offset}')
 
         new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp_datetime])
         self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
         self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
         self.ecg_dataframe_update.emit(self.ecg_dataframe)
-        # print(self.ecg_dataframe.info(memory_usage='deep'))
+
+    @Slot(dict)
+    def update_ecg_dataframe(self, value):
+        # Sensor timestamp is in nanoseconds since epoch 2000-01-01T00:00:00Z
+        timestamp_ns = value['timestamp']
+        # calculate offset beetween timestamp and current time
+        current_time = int(datetime.datetime.now().timestamp() * 1000000000)
+        # print(datetime.datetime.now().timestamp())
+        offset = current_time - timestamp_ns
+        new_row = pd.DataFrame({'offset': [offset]}, index=[timestamp_ns])
+        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
+        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
+        self.ecg_dataframe_update.emit(self.ecg_dataframe)
+        # print(self.ecg_dataframe)
+
+        if len(self.ecg_dataframe) == 1000:
+            # self.ecg_dataframe['offset'].plot.kde()
+            # self.ecg_dataframe['offset'].plot.hist()
+            # print statistical data
+            print(f'mean: {self.ecg_dataframe["offset"].mean()}')
+            print(f'median: {self.ecg_dataframe["offset"].median()}')
+            print(f'std: {self.ecg_dataframe["offset"].std()}')
+            print(f'min: {self.ecg_dataframe["offset"].min()}')
+            print(f'max: {self.ecg_dataframe["offset"].max()}')
+
+            # more analysis
+            print(f'kurtosis: {self.ecg_dataframe["offset"].kurtosis()}')
+            print(f'skewness: {self.ecg_dataframe["offset"].skew()}')
+            print(f'variance: {self.ecg_dataframe["offset"].var()}')
+
+            # plot offset over steps
+            self.ecg_dataframe['offset'].plot()
+            # print(f'covariance: {self.ecg_dataframe["offset"].cov()}')
+            # print(f'quantile: {self.ecg_dataframe["offset"].quantile()}')
+
+            plt.show()
 
     @Slot(dict)
     def update_acc_dataframe(self, value):
