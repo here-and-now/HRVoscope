@@ -24,12 +24,23 @@ class Model(QObject):
 
     @Slot(dict)
     def update_ibi_dataframe(self, value):
-        timestamp = pd.to_datetime(value['timestamp'], unit='ms')
-        new_row = pd.DataFrame({'ibi': [value['ibi']]}, index=[timestamp])
-        self.ibi_dataframe = pd.concat([self.ibi_dataframe, new_row])
-        self.ibi_dataframe.index = pd.DatetimeIndex(self.ibi_dataframe.index)
-        self.ibi_dataframe_update.emit(self.ibi_dataframe)
-        # self.calculate_hrv_metrics()
+        # Define a sensible cutoff value for IBI
+        # IBI values are usually in the range of 600 to 1000 ms for adults at rest.
+        # However, it can vary widely based on activities and health conditions.
+        # You may adjust this based on your specific needs and domain knowledge.
+        ibi_cutoff_low = 300  # in milliseconds
+        ibi_cutoff_high = 2000  # in milliseconds
+
+        ibi_value = value['ibi']
+
+        if ibi_cutoff_low <= ibi_value <= ibi_cutoff_high:
+            timestamp = pd.to_datetime(value['timestamp'], unit='ms')
+            new_row = pd.DataFrame({'ibi': [ibi_value]}, index=[timestamp])
+            self.ibi_dataframe = pd.concat([self.ibi_dataframe, new_row])
+            self.ibi_dataframe.index = pd.DatetimeIndex(self.ibi_dataframe.index)
+            self.ibi_dataframe_update.emit(self.ibi_dataframe)
+        else:
+            print(f"Discarded improbable IBI value: {ibi_value} ms")
 
     @Slot(dict)
     def update_hr_dataframe(self, value):
@@ -40,91 +51,6 @@ class Model(QObject):
         self.hr_dataframe.index = pd.DatetimeIndex(self.hr_dataframe.index)
         self.hr_dataframe_update.emit(self.hr_dataframe)
 
-    @Slot(dict)
-    def _update_ecg_dataframe(self, value):
-        # sensor timestamp is in nanoseconds from polar epoch
-        timestamp_ns = value['timestamp']
-
-        # Offset between Unix epoch and Polar epoch in nanoseconds
-        nanosecond_offset = 946684800000000000 # aka 2000-01-01 00:00:00 UTC
-
-        # Convert to unix timestamp in milliseconds
-        timestamp_ms = (timestamp_ns + nanosecond_offset) / 1000000
-        # Convert to datetime
-        timestamp_datetime = pd.to_datetime(timestamp_ms, unit='ms')
-
-        print(timestamp_datetime)
-        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp_datetime])
-        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
-        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
-        self.ecg_dataframe_update.emit(self.ecg_dataframe)
-        # print(self.ecg_dataframe)
-
-    @Slot(dict)
-    def _update_ecg_dataframe(self, value):
-        # Sensor timestamp is in nanoseconds since epoch 2000-01-01T00:00:00Z
-        timestamp_ns = value['timestamp']
-        nanosecond_offset = 946684800000000000 # aka 2000-01-01 00:00:00 UTC
-        # Convert to datetime using the correct epoch
-        timestamp_datetime = timestamp_ns + nanosecond_offset
-
-        # calculate offset beetween timestamp and current time
-        current_time = int(datetime.datetime.now().timestamp() * 1000000000)
-
-        offset = current_time - timestamp_ns
-
-        print(f'offset: {offset}')
-
-        new_row = pd.DataFrame({'ecg': [value['ecg']]}, index=[timestamp_datetime])
-        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
-        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
-        self.ecg_dataframe_update.emit(self.ecg_dataframe)
-
-    @Slot(dict)
-    def update_ecg_dataframe(self, value):
-        # Sensor timestamp is in nanoseconds since epoch 2000-01-01T00:00:00Z
-        timestamp_ns = value['timestamp']
-        # calculate offset beetween timestamp and current time
-        current_time = int(datetime.datetime.now().timestamp() * 1000000000)
-        # print(datetime.datetime.now().timestamp())
-        offset = current_time - timestamp_ns
-        new_row = pd.DataFrame({'offset': [offset]}, index=[timestamp_ns])
-        self.ecg_dataframe = pd.concat([self.ecg_dataframe, new_row])
-        self.ecg_dataframe.index = pd.DatetimeIndex(self.ecg_dataframe.index)
-        self.ecg_dataframe_update.emit(self.ecg_dataframe)
-        # print(self.ecg_dataframe)
-
-        if len(self.ecg_dataframe) == 1000:
-            # self.ecg_dataframe['offset'].plot.kde()
-            # self.ecg_dataframe['offset'].plot.hist()
-            # print statistical data
-            print(f'mean: {self.ecg_dataframe["offset"].mean()}')
-            print(f'median: {self.ecg_dataframe["offset"].median()}')
-            print(f'std: {self.ecg_dataframe["offset"].std()}')
-            print(f'min: {self.ecg_dataframe["offset"].min()}')
-            print(f'max: {self.ecg_dataframe["offset"].max()}')
-
-            # more analysis
-            print(f'kurtosis: {self.ecg_dataframe["offset"].kurtosis()}')
-            print(f'skewness: {self.ecg_dataframe["offset"].skew()}')
-            print(f'variance: {self.ecg_dataframe["offset"].var()}')
-
-            # plot offset over steps
-            self.ecg_dataframe['offset'].plot()
-            # print(f'covariance: {self.ecg_dataframe["offset"].cov()}')
-            # print(f'quantile: {self.ecg_dataframe["offset"].quantile()}')
-
-            plt.show()
-
-    @Slot(dict)
-    def update_acc_dataframe(self, value):
-        # fix timestamp stuff
-        timestamp = pd.to_datetime(value['timestamp'], unit='ns')
-        new_row = pd.DataFrame({'x': [value['x']], 'y': [value['y']], 'z': [value['z']], 'mag': [value['mag']]},
-                               index=[timestamp])
-        self.acc_dataframe = pd.concat([self.acc_dataframe, new_row])
-        self.acc_dataframe.index = pd.DatetimeIndex(self.acc_dataframe.index)
-        self.acc_dataframe_update.emit(self.acc_dataframe)
 
     def calculate_hrv_metrics(self, time_metrics_window=10):
         df = self.ibi_dataframe
