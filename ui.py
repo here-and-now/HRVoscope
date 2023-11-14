@@ -44,16 +44,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
-        self.hrv_metrics_by_time_chart = XYSeriesWidget(self.centralwidget)
-        self.hrv_metrics_by_time_chart.setObjectName(u"hrv_metrics_by_time_chart")
-
-        self.gridLayout.addWidget(self.hrv_metrics_by_time_chart, 2, 1, 1, 2)
-
-        self.ecg_chart = XYSeriesWidget(self.centralwidget)
-        self.ecg_chart.setObjectName(u"ecg_chart")
-
-        self.gridLayout.addWidget(self.ecg_chart, 5, 1, 1, 2)
-
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.hrv_metrics_label = QLabel(self.centralwidget)
@@ -75,64 +65,6 @@ class Ui_MainWindow(object):
         self.hr_chart.setObjectName(u"hr_chart")
 
         self.gridLayout.addWidget(self.hr_chart, 4, 2, 1, 1)
-
-        self.horizontalLayout_6 = QHBoxLayout()
-        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
-        self.plot_window_button_30s = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group = QButtonGroup(MainWindow)
-        self.plot_time_window_button_group.setObjectName(u"plot_time_window_button_group")
-        self.plot_time_window_button_group.addButton(self.plot_window_button_30s)
-        self.plot_window_button_30s.setObjectName(u"plot_window_button_30s")
-        self.plot_window_button_30s.setCheckable(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_30s)
-
-        self.plot_window_button_1m = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_1m)
-        self.plot_window_button_1m.setObjectName(u"plot_window_button_1m")
-        self.plot_window_button_1m.setCheckable(True)
-        self.plot_window_button_1m.setChecked(False)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_1m)
-
-        self.plot_window_button_3m = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_3m)
-        self.plot_window_button_3m.setObjectName(u"plot_window_button_3m")
-        self.plot_window_button_3m.setCheckable(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_3m)
-
-        self.plot_window_button_5m = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_5m)
-        self.plot_window_button_5m.setObjectName(u"plot_window_button_5m")
-        self.plot_window_button_5m.setCheckable(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_5m)
-
-        self.plot_window_button_10m = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_10m)
-        self.plot_window_button_10m.setObjectName(u"plot_window_button_10m")
-        self.plot_window_button_10m.setCheckable(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_10m)
-
-        self.plot_window_button_30m = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_30m)
-        self.plot_window_button_30m.setObjectName(u"plot_window_button_30m")
-        self.plot_window_button_30m.setCheckable(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_30m)
-
-        self.plot_window_button_all = QPushButton(self.centralwidget)
-        self.plot_time_window_button_group.addButton(self.plot_window_button_all)
-        self.plot_window_button_all.setObjectName(u"plot_window_button_all")
-        self.plot_window_button_all.setCheckable(True)
-        self.plot_window_button_all.setChecked(True)
-
-        self.horizontalLayout_6.addWidget(self.plot_window_button_all)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_6, 6, 2, 1, 1)
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -192,6 +124,69 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.hrv_ibi_chart, 4, 1, 1, 1)
 
+        self.hrv_metrics_by_time_chart = XYSeriesWidget(self.centralwidget)
+        self.hrv_metrics_by_time_chart.setObjectName(u"hrv_metrics_by_time_chart")
+
+        self.gridLayout.addWidget(self.hrv_metrics_by_time_chart, 2, 1, 1, 2)
+
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.plot_window_button_30s = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group = QButtonGroup(MainWindow)
+        self.plot_time_window_button_group.setObjectName(u"plot_time_window_button_group")
+        self.plot_time_window_button_group.addButton(self.plot_window_button_30s)
+        self.plot_window_button_30s.setObjectName(u"plot_window_button_30s")
+        self.plot_window_button_30s.setCheckable(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_30s)
+
+        self.plot_window_button_1m = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_1m)
+        self.plot_window_button_1m.setObjectName(u"plot_window_button_1m")
+        self.plot_window_button_1m.setCheckable(True)
+        self.plot_window_button_1m.setChecked(False)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_1m)
+
+        self.plot_window_button_3m = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_3m)
+        self.plot_window_button_3m.setObjectName(u"plot_window_button_3m")
+        self.plot_window_button_3m.setCheckable(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_3m)
+
+        self.plot_window_button_5m = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_5m)
+        self.plot_window_button_5m.setObjectName(u"plot_window_button_5m")
+        self.plot_window_button_5m.setCheckable(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_5m)
+
+        self.plot_window_button_10m = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_10m)
+        self.plot_window_button_10m.setObjectName(u"plot_window_button_10m")
+        self.plot_window_button_10m.setCheckable(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_10m)
+
+        self.plot_window_button_30m = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_30m)
+        self.plot_window_button_30m.setObjectName(u"plot_window_button_30m")
+        self.plot_window_button_30m.setCheckable(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_30m)
+
+        self.plot_window_button_all = QPushButton(self.centralwidget)
+        self.plot_time_window_button_group.addButton(self.plot_window_button_all)
+        self.plot_window_button_all.setObjectName(u"plot_window_button_all")
+        self.plot_window_button_all.setCheckable(True)
+        self.plot_window_button_all.setChecked(True)
+
+        self.horizontalLayout_6.addWidget(self.plot_window_button_all)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_6, 6, 2, 1, 1)
+
 
         self.horizontalLayout_2.addLayout(self.gridLayout)
 
@@ -200,6 +195,11 @@ class Ui_MainWindow(object):
 
 
         self.horizontalLayout.addLayout(self.verticalLayout)
+
+        self.pacerButton = QPushButton(self.centralwidget)
+        self.pacerButton.setObjectName(u"pacerButton")
+
+        self.horizontalLayout.addWidget(self.pacerButton)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
@@ -228,6 +228,12 @@ class Ui_MainWindow(object):
         self.actionPause_plot.setText(QCoreApplication.translate("MainWindow", u"Pause plot", None))
         self.actionResume_plot.setText(QCoreApplication.translate("MainWindow", u"Resume plot", None))
         self.hrv_metrics_label.setText(QCoreApplication.translate("MainWindow", u"HRV metrics", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Calculate HRV over:", None))
+        self.hrv_metrics_time_1s_button.setText(QCoreApplication.translate("MainWindow", u"1s", None))
+        self.hrv_metrics_time_5s_button.setText(QCoreApplication.translate("MainWindow", u"5s", None))
+        self.hrv_metrics_time_10s_button.setText(QCoreApplication.translate("MainWindow", u"10s", None))
+        self.hrv_metrics_time_30s_button.setText(QCoreApplication.translate("MainWindow", u"30s", None))
+        self.hrv_metrics_time_1m_button.setText(QCoreApplication.translate("MainWindow", u"1m", None))
         self.plot_window_button_30s.setText(QCoreApplication.translate("MainWindow", u"30s", None))
         self.plot_window_button_1m.setText(QCoreApplication.translate("MainWindow", u"1m", None))
         self.plot_window_button_3m.setText(QCoreApplication.translate("MainWindow", u"3m", None))
@@ -235,12 +241,7 @@ class Ui_MainWindow(object):
         self.plot_window_button_10m.setText(QCoreApplication.translate("MainWindow", u"10m", None))
         self.plot_window_button_30m.setText(QCoreApplication.translate("MainWindow", u"30m", None))
         self.plot_window_button_all.setText(QCoreApplication.translate("MainWindow", u"All", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Calculate HRV over:", None))
-        self.hrv_metrics_time_1s_button.setText(QCoreApplication.translate("MainWindow", u"1s", None))
-        self.hrv_metrics_time_5s_button.setText(QCoreApplication.translate("MainWindow", u"5s", None))
-        self.hrv_metrics_time_10s_button.setText(QCoreApplication.translate("MainWindow", u"10s", None))
-        self.hrv_metrics_time_30s_button.setText(QCoreApplication.translate("MainWindow", u"30s", None))
-        self.hrv_metrics_time_1m_button.setText(QCoreApplication.translate("MainWindow", u"1m", None))
+        self.pacerButton.setText(QCoreApplication.translate("MainWindow", u"Pacer", None))
         self.menuSettings.setTitle(QCoreApplication.translate("MainWindow", u"Settings", None))
     # retranslateUi
 
