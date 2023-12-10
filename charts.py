@@ -32,6 +32,7 @@ class XYSeriesWidget(pg.GraphicsView):
 
     def plot(self, x, y, name='', time_window=None, *args, **kwargs):
         if x.dtype == 'datetime64[ns]':
+
             x = x.astype('int64') // 10 ** 6  # Convert to milliseconds
 
         if name in self.series_curves:

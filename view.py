@@ -29,13 +29,13 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         self.sensor.connect_client(self.sensor)
 
         # Connect signals for dataframe updates
-        self.sensor.hr_update.connect(self.model.update_hr_dataframe)
-        self.sensor.ibi_update.connect(self.model.update_ibi_dataframe)
+        self.sensor.hr_ibi_update.connect(self.model.update_hr_ibi_dataframe)
+
 
         # Connect signals for plotting
-        self.model.hr_dataframe_update.connect(self.plot_hr)
-        self.model.ibi_dataframe_update.connect(self.plot_ibi)
-        self.model.ibi_dataframe_update.connect(self.plot_hrv_metrics)
+        self.model.hr_ibi_dataframe_update.connect(self.plot_hr)
+        self.model.hr_ibi_dataframe_update.connect(self.plot_ibi)
+        self.model.hr_ibi_dataframe_update.connect(self.plot_hrv_metrics)
 
         # Setup actions
         self.actionReset_data.triggered.connect(self.reset_data)
@@ -47,6 +47,13 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Connect the pacerButton click event to the open_pacer_window method
         self.pacerButton.clicked.connect(self.open_pacer_window)
+
+
+        self.recordButton.clicked.connect(self.on_record_button_clicked)
+
+
+    def on_record_button_clicked(self):
+        self.model.save_combined_dataframe()
 
     def open_pacer_window(self):
         if not hasattr(self, 'pacer_window'):
@@ -75,10 +82,6 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         x_scaled = x * scale_factor + x_center
         y_scaled = y * scale_factor + y_center
 
-        # Debugging
-        print(
-            f"Ellipse position and size: x={min(x_scaled)}, y={min(y_scaled)}, width={max(x_scaled) - min(x_scaled)}, height={max(y_scaled) - min(y_scaled)}")
-
         scene.clear()
         ellipse = QtWidgets.QGraphicsEllipseItem(min(x_scaled), min(y_scaled), max(x_scaled) - min(x_scaled),
                                                  max(y_scaled) - min(y_scaled))
@@ -91,6 +94,7 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         tw = self.time_window_for_plot()
         x = df.index.values
         y = df[name].values
+
         chart.plot(x, y, name=name, time_window=tw, pen=pg.mkPen(color=color, width=2))
 
     def plot_ibi(self, df):
@@ -138,8 +142,6 @@ class View(QtWidgets.QMainWindow, Ui_MainWindow):
         self.model.initialize_dataframes()
         self.hr_chart.clear()
         self.hrv_ibi_chart.clear()
-        self.ecg_chart.clear()
-        self.acc_chart.clear()
         self.hrv_metrics_by_time_chart.clear()
 
     def pause_plotting(self):
